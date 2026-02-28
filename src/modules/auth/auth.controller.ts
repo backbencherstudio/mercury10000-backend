@@ -14,16 +14,25 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
+import {
+  CreateUserResDto,
+  ForgotPasswordDto,
+  LoginUserResDto,
+} from 'src/modules/auth/dto/create-user-res.dto';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
 import { AuthService } from './auth.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { first } from 'rxjs';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -31,6 +40,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   // *get user details
+  @ApiOperation({ summary: 'Get current user details' })
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async me(@Req() req: Request) {
@@ -49,23 +59,26 @@ export class AuthController {
   }
 
   // *register user
+  @ApiOkResponse({ type: CreateUserResDto })
+  @ApiOperation({
+    summary: 'User register / Create',
+  })
+  @ApiBody({
+    description: 'User Type: (ADMIN, CLIENT, EDITOR, MAID, SEEKER, VOLUNTEER)',
+    type: CreateUserResDto,
+  })
   @Post('register')
-  async create(@Body() data: CreateUserDto) {
+  async create(@Body() data: CreateUserResDto) {
     try {
-      const first_name = data.first_name;
-      const last_name = data.last_name;
-      const name = first_name + ' ' + last_name;
+      const name = data.name;
       const email = data.email;
-      const address = data.address;
+      const phone_number = data.phone_number;
       const password = data.password;
       const type = data.type;
 
+      // console.log('Register Data', data);
 
-      if (!first_name) {
-        throw new HttpException('Name not provided', HttpStatus.UNAUTHORIZED);
-      }
-
-      if (!last_name) {
+      if (!name) {
         throw new HttpException('Name not provided', HttpStatus.UNAUTHORIZED);
       }
 
@@ -73,17 +86,15 @@ export class AuthController {
         throw new HttpException('Email not provided', HttpStatus.UNAUTHORIZED);
       }
       if (!password) {
-        throw new HttpException('Password not provided',HttpStatus.UNAUTHORIZED,);
-      }
-      if (!address) {
-        throw new HttpException('Address not provided', HttpStatus.UNAUTHORIZED);
+        throw new HttpException(
+          'Password not provided',
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       const response = await this.authService.register({
-        first_name: first_name,
-        last_name: last_name,
         name: name,
-        address: address,
+        phone_number: phone_number,
         email: email,
         password: password,
         type: type,
@@ -99,6 +110,13 @@ export class AuthController {
   }
 
   // *login user
+  @ApiOkResponse({ type: LoginUserResDto })
+  @ApiOperation({
+    summary: 'User login Success',
+  })
+  @ApiBody({
+    type: LoginUserResDto,
+  })
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Req() req: Request, @Res() res: Response) {
@@ -115,11 +133,10 @@ export class AuthController {
       res.cookie('refresh_token', response.authorization.refresh_token, {
         httpOnly: true,
         secure: true,
-        maxAge: 1000 * 60 * 60 * 24 * 7, 
+        maxAge: 1000 * 60 * 60 * 24 * 7,
       });
       res.json(response);
-    } 
-    catch (error) {
+    } catch (error) {
       return {
         success: false,
         message: error.message,
@@ -133,7 +150,7 @@ export class AuthController {
   @UseInterceptors(
     FileInterceptor('image', {
       storage: memoryStorage(),
-      limits: { fileSize: 5 * 1024 * 1024 }, 
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
   async updateUser(
@@ -155,6 +172,9 @@ export class AuthController {
 
   // *forgot password
   @ApiOperation({ summary: 'Forgot password' })
+  @ApiBody({
+    type: ForgotPasswordDto,
+  })
   @Post('forgot-password')
   async forgotPassword(@Body() data: { email: string }) {
     try {
@@ -392,8 +412,6 @@ export class AuthController {
       data: req.user,
     };
   }
-
- 
 
   // --------------change password---------
 

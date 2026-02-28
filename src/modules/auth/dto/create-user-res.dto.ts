@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { UserType } from 'prisma/generated';
 
-export class CreateUserDto {
+export class CreateUserResDto {
   @ApiPropertyOptional({ example: 'John Doe' })
   @IsString()
   @IsOptional()
@@ -28,10 +28,25 @@ export class CreateUserDto {
 
   @ApiPropertyOptional({
     enum: UserType,
-    default: UserType.VOLUNTEER,
+    default: UserType.SEEKER,
   })
-  @ApiProperty({ example: UserType.VOLUNTEER })
+  @ApiProperty({ example: UserType.SEEKER })
   @IsOptional()
   @IsEnum(UserType)
   type?: UserType;
+}
+
+export class LoginUserResDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: 'password123' })
+  @MinLength(8, { message: 'Password should be minimum 8 characters' })
+  password: string;
+}
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  email: string;
 }

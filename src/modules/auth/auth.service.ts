@@ -7,7 +7,6 @@ import Redis from 'ioredis';
 //internal imports
 import { StringHelper } from '../../common/helper/string.helper';
 import { TajulStorage } from '../../common/lib/Disk/TajulStorage';
-import { StripePayment } from '../../common/lib/Payment/stripe/StripePayment';
 import { UcodeRepository } from '../../common/repository/ucode/ucode.repository';
 import { UserRepository } from '../../common/repository/user/user.repository';
 import appConfig from '../../config/app.config';
@@ -76,23 +75,20 @@ export class AuthService {
   }
   // done
   async register({
-    first_name,
-    last_name,
     name,
-    address,
+    phone_number,
     email,
     password,
     type,
   }: {
-    first_name: string;
-    last_name: string;
     name: string;
-    address: string;
+    phone_number: string;
     email: string;
     password: string;
     type?: string;
   }) {
     try {
+     
       // Check if email already exist
       const userEmailExist = await this.userRepository.exist({
         field: 'email',
@@ -110,9 +106,7 @@ export class AuthService {
         name: name,
         email: email,
         password: password,
-        first_name: first_name,
-        last_name: last_name,
-        address: address,
+        phone_number: phone_number,
         type: type,
       });
 
@@ -123,42 +117,43 @@ export class AuthService {
         };
       }
 
-      // create stripe customer account
-      const stripeCustomer = await StripePayment.createCustomer({
-        user_id: user.data.id,
-        email: email,
-        name: name,
-      });
+      // // create stripe customer account
+      // const stripeCustomer = await StripePayment.createCustomer({
+      //   user_id: user.data.id,
+      //   email: email,
+      //   name: name,
+      // });
 
-      if (stripeCustomer) {
-        await this.prisma.user.update({
-          where: {
-            id: user.data.id,
-          },
-          data: {
-            billing_id: stripeCustomer.id,
-          },
-        });
-      }
+      // if (stripeCustomer) {
+      //   await this.prisma.user.update({
+      //     where: {
+      //       id: user.data.id,
+      //     },
+      //     data: {
+      //       billing_id: stripeCustomer.id,
+      //     },
+      //   });
+      // }
 
-      // ----------------------------------------------------
-      // create otp code
-      const token = await this.ucodeRepository.createToken({
-        userId: user.data.id,
-        isOtp: true,
-        time: 2,
-      });
+      // // ----------------------------------------------------
+      // // create otp code
+      // const token = await this.ucodeRepository.createToken({
+      //   userId: user.data.id,
+      //   isOtp: true,
+      //   time: 2,
+      // });
 
-      // send otp code to email
-      await this.mailService.sendOtpCodeToEmail({
-        email: email,
-        name: name,
-        otp: token,
-      });
+      // // send otp code to email
+      // await this.mailService.sendOtpCodeToEmail({
+      //   email: email,
+      //   name: name,
+      //   otp: token,
+      // });
 
       return {
         success: true,
-        message: 'We have sent an OTP code to your email',
+        message: 'Account created successfully',
+        data: user,
       };
     } catch (error) {
       return {
@@ -739,11 +734,11 @@ export class AuthService {
       });
       if (_isValidPassword) {
         // Check if email is verified
-        if (!user.email_verified_at) {
-          throw new UnauthorizedException(
-            'Please verify your email before logging in',
-          );
-        }
+        // if (!user.email_verified_at) {
+        //   throw new UnauthorizedException(
+        //     'Please verify your email before logging in',
+        //   );
+        // }
         const { password, ...result } = user;
         if (user.is_two_factor_enabled) {
           if (token) {

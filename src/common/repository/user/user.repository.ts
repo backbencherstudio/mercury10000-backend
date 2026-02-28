@@ -35,8 +35,6 @@ export class UserRepository {
     return user;
   }
 
- 
-
   /**
    * get user details
    * @returns
@@ -182,9 +180,7 @@ export class UserRepository {
    * @returns
    */
   async createUser({
-    first_name,
-    last_name,
-    address,
+    phone_number,
     name,
     email,
     password,
@@ -192,16 +188,21 @@ export class UserRepository {
     role_id,
   }: {
     name?: string;
-    first_name?: string;
-    last_name?: string;
     email: string;
-    address?: string;
     password: string;
     phone_number?: string;
     role_id?: string;
     type?: string;
   }) {
     try {
+      // console.log('Create user data', {
+      //   phone_number,
+      //   name,
+      //   email,
+      //   password,
+      //   type,
+      //   role_id,
+      // });
       const data = {};
 
       if (name) {
@@ -231,20 +232,12 @@ export class UserRepository {
         );
       }
 
-      if (type && ArrayHelper.inArray(type, Object.values(Role))) {
+      if (type) {
         data['type'] = type;
       }
 
-      if (first_name) {
-        data['first_name'] = first_name;
-      }
-
-      if (last_name) {
-        data['last_name'] = last_name;
-      }
-
-      if (address) {
-        data['address'] = address;
+      if (phone_number) {
+        data['phone_number'] = phone_number;
       }
 
       const user = await this.prisma.user.create({
@@ -252,6 +245,8 @@ export class UserRepository {
           ...data,
         },
       });
+
+      // console.log('User created', user);
 
       if (user) {
         if (role_id) {

@@ -17,6 +17,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiExcludeEndpoint,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -24,9 +25,11 @@ import {
 import { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
 import {
+  ChangePasswordDto,
   CreateUserResDto,
   ForgotPasswordDto,
   LoginUserResDto,
+  VerifyTokenDto,
 } from 'src/modules/auth/dto/create-user-res.dto';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
 import { AuthService } from './auth.service';
@@ -145,6 +148,7 @@ export class AuthController {
   }
 
   // *update user
+  @ApiExcludeEndpoint()
   @UseGuards(JwtAuthGuard)
   @Patch('update')
   @UseInterceptors(
@@ -192,6 +196,7 @@ export class AuthController {
   }
 
   // *verify email
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Verify email' })
   @Post('verify-email')
   async verifyEmail(@Body() data: VerifyEmailDto) {
@@ -217,6 +222,7 @@ export class AuthController {
   }
 
   // *resend verification email to verify the email
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Resend verification email' })
   @Post('resend-verification-email')
   async resendVerificationEmail(@Body() data: { email: string }) {
@@ -235,6 +241,7 @@ export class AuthController {
   }
 
   // *reset password if user forget the password
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Reset password' })
   @Post('reset-password')
   async resetPassword(
@@ -270,6 +277,7 @@ export class AuthController {
   }
 
   // *resend token
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Resend reset password token' })
   @Post('resend-token')
   async resendToken(@Body() data: { email: string }) {
@@ -289,6 +297,13 @@ export class AuthController {
 
   // *veify token
   @ApiOperation({ summary: 'Verify reset password token' })
+  @ApiBody({
+    type: VerifyTokenDto,
+  })
+  @ApiOkResponse({
+    description: 'Token verified successfully',
+    type: VerifyTokenDto,
+  })
   @Post('verify-token')
   async verifyToken(@Body() data: { email: string; token: string }) {
     try {
@@ -314,6 +329,13 @@ export class AuthController {
 
   // change password if user want to change the password
   @ApiOperation({ summary: 'Change password' })
+  @ApiBody({
+    type: ChangePasswordDto,
+  })
+  @ApiOkResponse({
+    description: 'Password changed successfully',
+    type: ChangePasswordDto,
+  })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
@@ -357,6 +379,7 @@ export class AuthController {
   }
   //-----------------------------------------------(end)----------------------------------------------------------------------
 
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Refresh token' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -382,6 +405,7 @@ export class AuthController {
     }
   }
 
+  @ApiExcludeEndpoint()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout')
@@ -398,12 +422,14 @@ export class AuthController {
     }
   }
 
+  @ApiExcludeEndpoint()
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleLogin(): Promise<any> {
     return HttpStatus.OK;
   }
 
+  @ApiExcludeEndpoint()
   @Get('google/redirect')
   @UseGuards(AuthGuard('google'))
   async googleLoginRedirect(@Req() req: Request): Promise<any> {
@@ -418,6 +444,7 @@ export class AuthController {
   // --------------end change password---------
 
   // -------change email address------
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'request email change' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -441,6 +468,7 @@ export class AuthController {
     }
   }
 
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Change email address' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -475,6 +503,7 @@ export class AuthController {
   // -------end change email address------
 
   // --------- 2FA ---------
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Generate 2FA secret' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -491,6 +520,7 @@ export class AuthController {
     }
   }
 
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Verify 2FA' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -508,6 +538,7 @@ export class AuthController {
     }
   }
 
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Enable 2FA' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
@@ -524,6 +555,7 @@ export class AuthController {
     }
   }
 
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Disable 2FA' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

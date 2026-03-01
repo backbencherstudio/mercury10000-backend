@@ -50,3 +50,23 @@ export class ForgotPasswordDto {
   @IsEmail()
   email: string;
 }
+
+export class VerifyTokenDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '156545' })
+  @IsString()
+  token: string;
+}
+
+export class ChangePasswordDto {
+  @ApiProperty({ example: 'password123' })
+  @MinLength(8, { message: 'Password should be minimum 8 characters' })
+  password: string;
+
+  @ApiProperty({ example: 'password123' })
+  @MinLength(8, { message: 'Password should be minimum 8 characters' })
+  new_password: string;
+}

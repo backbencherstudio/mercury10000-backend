@@ -1,23 +1,29 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiExcludeController,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Role } from '../../../common/guard/role/role.enum';
+import { Roles } from '../../../common/guard/role/roles.decorator';
+import { RolesGuard } from '../../../common/guard/role/roles.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ContactService } from './contact.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { UpdateContactDto } from './dto/update-contact.dto';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { Roles } from '../../../common/guard/role/roles.decorator';
-import { Role } from '../../../common/guard/role/role.enum';
-import { RolesGuard } from '../../../common/guard/role/roles.guard';
 
+@ApiExcludeController()
 @ApiBearerAuth()
 @ApiTags('Contact')
 @UseGuards(JwtAuthGuard, RolesGuard)

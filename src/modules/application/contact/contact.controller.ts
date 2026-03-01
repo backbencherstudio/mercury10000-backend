@@ -1,8 +1,9 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ContactService } from './contact.service';
 import { CreateContactDto } from './dto/create-contact.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiExcludeController, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiExcludeController()
 @ApiTags('Contact')
 @Controller('contact')
 export class ContactController {

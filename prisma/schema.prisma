@@ -99,6 +99,9 @@ model User {
   ucodes               Ucode[]
   role_users           RoleUser[]
   payment_transactions PaymentTransaction[]
+  postCommunities      PostCommunity[]
+  comments             Comment[]
+  postLikes            PostLike[]
 
   @@map("users")
 }
@@ -118,6 +121,57 @@ model Ucode {
   verified_at DateTime?
 
   @@map("ucodes")
+}
+
+// Post Community Model
+model PostCommunity {
+  id           String   @id @default(uuid())
+  author_id    String
+  title        String? // "Request Title" in UI
+  content      String?   @db.Text
+  image_url    String?
+  location_tag String? // "South West Florida"
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  // Relations
+  user     User       @relation(fields: [author_id], references: [id])
+  comments Comment[]
+  likes    PostLike[]
+
+  @@map("post_communities")
+}
+
+// Comment Model
+model Comment {
+  id         String   @id @default(uuid())
+  post_id    String
+  author_id  String
+  parent_id  String? // Added for replies
+  content    String   @db.Text
+  created_at DateTime @default(now())
+
+  // Relations
+  post    PostCommunity @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [author_id], references: [id])
+  parent  Comment?      @relation("CommentReplies", fields: [parent_id], references: [id])
+  replies Comment[]     @relation("CommentReplies")
+
+  @@map("comments")
+}
+
+// Separate Like model for scalability (tracking who liked what)
+model PostLike {
+  id         String   @id @default(uuid())
+  post_id    String
+  user_id    String
+  created_at DateTime @default(now())
+
+  post PostCommunity @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [user_id], references: [id])
+
+  @@unique([post_id, user_id]) // Prevent duplicate likes
+  @@map("post_likes")
 }
 
 /**

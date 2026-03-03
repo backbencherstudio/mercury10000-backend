@@ -45,6 +45,7 @@ export class AuthController {
   // *get user details
   @ApiOperation({ summary: 'Get current user details' })
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Get('me')
   async me(@Req() req: Request) {
     try {

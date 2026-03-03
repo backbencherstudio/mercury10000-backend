@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { formatDistanceToNow } from 'date-fns';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
 import appConfig from 'src/config/app.config';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -21,53 +23,61 @@ export class PostCommunityService {
     dto: CreatePostDto,
     file?: Express.Multer.File,
   ) {
-    // Ensure userId exists
-    if (!userId) {
-      throw new BadRequestException('User ID is required to create a post');
+    // 1. Validate User and Permissions
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { type: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.type !== 'SEEKER') {
+      throw new ForbiddenException(
+        'Access denied. Only Seekers can create posts.',
+      );
     }
 
-    let image_urlPath: string | null = null;
+    // 2. Handle File Upload to public/storage/post-community
+    let fileName: string | null = null;
 
     if (file) {
-      const sanitizedFileName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
-      const storageFolder = appConfig().storageUrl.postCommunity;
-      image_urlPath = `${storageFolder}/${sanitizedFileName}`;
-      await TajulStorage.put(image_urlPath, file.buffer);
+      try {
+        // Generate name: e.g., 1772526..._image.jpg
+        fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+
+        // The path relative to your storage root
+        const relativePath = `post-community/${fileName}`;
+
+        // Upload the buffer
+        await TajulStorage.put(relativePath, file.buffer);
+      } catch (uploadError) {
+        console.error('Upload Error:', uploadError);
+        throw new BadRequestException('Failed to upload image.');
+      }
     }
 
+    // 3. Database Operation
     try {
       const post = await this.prisma.postCommunity.create({
         data: {
           title: dto.title,
           content: dto.content,
           location_tag: dto.location_tag,
-          image_url: image_urlPath,
-          // Use the relation connector
+          image_url: fileName,
           user: {
             connect: { id: userId },
-          },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
           },
         },
       });
 
       return {
+        status: 201,
         message: 'Post created successfully',
-        status: 201, // Created
         data: post,
       };
     } catch (error) {
-      console.error('Prisma Create Error:', error);
-      throw new BadRequestException(
-        'Failed to create post. Ensure the user exists.',
-      );
+      console.error('Prisma Error:', error);
+      throw new BadRequestException('Database error. Please try again.');
     }
   }
 
@@ -77,29 +87,58 @@ export class PostCommunityService {
         user: {
           select: { id: true, first_name: true, last_name: true, avatar: true },
         },
-        _count: { select: { likes: true, comments: true } },
+        _count: {
+          select: { likes: true, comments: true },
+        },
         comments: {
-          where: { parent_id: null }, // Fetch root comments first
+          where: { parent_id: null }, // Only root comments initially
+          take: 5,
           include: {
             user: { select: { first_name: true, avatar: true } },
             replies: {
-              // Nested replies logic
-              include: { user: { select: { first_name: true, avatar: true } } },
+              take: 3,
+              include: {
+                user: { select: { first_name: true, avatar: true } },
+                // Note: Prisma deeper level fetch korar jonno ekhane recursion handle korte hobe
+              },
             },
           },
           orderBy: { created_at: 'desc' },
         },
       },
+      orderBy: { created_at: 'desc' },
+    });
+
+    if (posts.length === 0) {
+      throw new NotFoundException('No posts found');
+    }
+
+    const formattedPosts = posts.map((post) => {
+      let fullImageUrl = post.image_url;
+      if (post.image_url) {
+        fullImageUrl = TajulStorage.url(
+          `${appConfig().storageUrl.postCommunity}${post.image_url}`,
+        );
+      }
+
+      return {
+        ...post,
+        image_url: fullImageUrl,
+        // Post creation time
+        time_ago: formatDistanceToNow(post.created_at, { addSuffix: true }),
+        // Recursive call for comments and their replies
+        comments: this.buildCommentTree(post.comments),
+      };
     });
 
     return {
-      message: 'Posts fetched successfully',
       status: 200,
-      data: posts,
+      message: 'Posts fetched successfully',
+      data: formattedPosts,
     };
   }
 
-  // 2. Get Post Details (With like count and nested comments)
+  // 2. Get Post Details (With image path, time_ago, like count and nested comments)
   async getPostDetail(postId: string) {
     const post = await this.prisma.postCommunity.findUnique({
       where: { id: postId },
@@ -108,14 +147,10 @@ export class PostCommunityService {
           select: { id: true, first_name: true, last_name: true, avatar: true },
         },
         _count: { select: { likes: true, comments: true } },
+        // Shob comments fetch korbo recursive nesting er jonno
         comments: {
-          where: { parent_id: null }, // Fetch root comments first
           include: {
             user: { select: { first_name: true, avatar: true } },
-            replies: {
-              // Nested replies logic
-              include: { user: { select: { first_name: true, avatar: true } } },
-            },
           },
           orderBy: { created_at: 'desc' },
         },
@@ -123,7 +158,28 @@ export class PostCommunityService {
     });
 
     if (!post) throw new NotFoundException('Post not found');
-    return { message: 'Post fetched successfully', status: 200, data: post };
+
+    // Image URL format
+    let fullImageUrl = post.image_url;
+    if (post.image_url) {
+      fullImageUrl = TajulStorage.url(
+        `${appConfig().storageUrl.postCommunity}${post.image_url}`,
+      );
+    }
+
+    // Build Recursive Comment Tree
+    const commentTree = this.buildCommentTree(post.comments);
+
+    return {
+      status: 200,
+      message: 'Post fetched successfully',
+      data: {
+        ...post,
+        image_url: fullImageUrl,
+        time_ago: formatDistanceToNow(post.created_at, { addSuffix: true }),
+        comments: commentTree, // Nested replies ekhane thakbe
+      },
+    };
   }
 
   // 3. Toggle Like Logic (Scalable way)
@@ -159,5 +215,26 @@ export class PostCommunityService {
       status: 200,
       data: comment,
     };
+  }
+
+  private buildCommentTree(
+    comments: any[],
+    parentId: string | null = null,
+  ): any[] {
+    return comments
+      .filter((comment) => comment.parent_id === parentId)
+      .map((comment) => ({
+        ...comment,
+        time_ago: formatDistanceToNow(comment.created_at, { addSuffix: true }),
+        // Avatar path formatting (jodi dorkar hoy)
+        user: {
+          ...comment.user,
+          avatar: comment.user.avatar
+            ? TajulStorage.url(comment.user.avatar)
+            : null,
+        },
+        // Recursion happens here
+        replies: this.buildCommentTree(comments, comment.id),
+      }));
   }
 }

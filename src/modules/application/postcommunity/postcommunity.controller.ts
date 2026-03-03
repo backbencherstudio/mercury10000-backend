@@ -67,7 +67,7 @@ export class PostCommunityController {
   @Post(':id/like')
   @ApiOperation({ summary: 'Like or unlike a post' })
   toggleLike(@Req() req, @Param('id') id: string) {
-    return this.postService.toggleLike(req.user.id, id);
+    return this.postService.toggleLike(req.user.userId, id);
   }
 
   @Post(':id/comment')
@@ -77,6 +77,6 @@ export class PostCommunityController {
     @Param('id') id: string,
     @Body() dto: CreateCommentDto,
   ) {
-    return this.postService.createComment(req.user.id, id, dto);
+    return this.postService.createComment(req.user.userId, id, dto);
   }
 }

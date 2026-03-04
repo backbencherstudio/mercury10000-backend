@@ -22,11 +22,11 @@ import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import {
   CreateCommentDto,
   CreatePostDto,
-} from './dto/create-postcommunity.dto'; // Assume you have JWT guard
+} from './dto/create-postcommunity.dto';
 import { PostCommunityService } from './postcommunity.service';
 
 @ApiTags('Post Community')
-@ApiBearerAuth() // For Swagger Auth
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('post-community')
 export class PostCommunityController {

@@ -103,6 +103,11 @@ model User {
   comments             Comment[]
   postLikes            PostLike[]
 
+  // Relations
+  created_requests Request[]  @relation("SeekerRequests")
+  accepted_tasks   Request[]  @relation("VolunteerTasks")
+  feedbacks_given  Feedback[] @relation("FeedbackAuthor")
+
   @@map("users")
 }
 
@@ -128,7 +133,7 @@ model PostCommunity {
   id           String   @id @default(uuid())
   author_id    String
   title        String? // "Request Title" in UI
-  content      String?   @db.Text
+  content      String?  @db.Text
   image_url    String?
   location_tag String? // "South West Florida"
   created_at   DateTime @default(now())
@@ -172,6 +177,75 @@ model PostLike {
 
   @@unique([post_id, user_id]) // Prevent duplicate likes
   @@map("post_likes")
+}
+
+//// req
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+}
+
+enum UrgencyLevel {
+  LOW
+  MEDIUM
+  HIGH
+  EMERGENCY
+}
+
+enum RequestCategory {
+  HURRICANE_PREPARATION
+  DURING_STORM
+  RECOVERY_CLEANUP
+  EMERGENCY_NON_911
+}
+
+model Request {
+  id                 String          @id @default(uuid())
+  title              String
+  description        String          @db.Text
+  category           RequestCategory 
+  location           String
+  
+
+  estimated_duration String?         // e.g., "2-3 hours"
+  
+  urgency_level      UrgencyLevel    @default(MEDIUM)
+  skills_needed      String[]        
+  status             RequestStatus   @default(PENDING)
+
+  // Relations
+  seeker_id          String
+  seeker             User            @relation("SeekerRequests", fields: [seeker_id], references: [id])
+
+  volunteer_id       String?
+  volunteer          User?           @relation("VolunteerTasks", fields: [volunteer_id], references: [id])
+
+  feedbacks          Feedback[]
+
+  created_at         DateTime        @default(now())
+  updated_at         DateTime        @updatedAt
+
+  @@map("requests")
+}
+
+model Feedback {
+  id          String  @id @default(uuid())
+  rating_type String // "LIKE" or "DISLIKE" screen onusare
+  comment     String? @db.Text
+
+  // Relations
+  request_id String
+  request    Request @relation(fields: [request_id], references: [id])
+
+  user_id String
+  user    User   @relation("FeedbackAuthor", fields: [user_id], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@map("feedbacks")
 }
 
 /**

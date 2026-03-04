@@ -1,0 +1,75 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
+import { CreateFeedbackDto, CreateRequestDto } from './dto/create-request.dto';
+import { RequestService } from './request.service';
+
+@ApiTags('Help Requests')
+@ApiBearerAuth()
+@Controller('requests')
+@UseGuards(JwtAuthGuard)
+export class RequestController {
+  constructor(private readonly requestService: RequestService) {}
+
+  @Post('create-request')
+  @ApiOperation({ summary: 'Create a new help request (Seeker)' })
+  // @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: CreateRequestDto, description: 'Create a new help request' })
+  @ApiResponse({
+    status: 201,
+    description: 'Request created successfully.',
+    type: CreateRequestDto,
+  })
+  async create(@Body() dto: CreateRequestDto, @Req() req: any) {
+    const seeker_id = req.user.userId;
+    return this.requestService.createRequest(seeker_id, dto);
+  }
+
+  @Get('available')
+  @ApiOperation({ summary: 'Get all pending requests for volunteers' })
+  async getAvailable() {
+    return this.requestService.getAvailableRequests();
+  }
+
+  @Patch(':id/accept')
+  @ApiOperation({ summary: 'Accept a pending request (Volunteer)' })
+  @ApiResponse({ status: 200, description: 'Request accepted successfully.' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict: Already accepted or self-acceptance.',
+  })
+  async accept(@Param('id') id: string, @Req() req: any) {
+    const volunteer_id = req.user.id;
+    return this.requestService.acceptRequest(volunteer_id, id);
+  }
+
+  @Post(':id/feedback')
+  @ApiOperation({ summary: 'Complete request and submit feedback' })
+  @ApiResponse({
+    status: 201,
+    description: 'Feedback submitted and job completed.',
+  })
+  async feedback(
+    @Param('id') id: string,
+    @Body() dto: CreateFeedbackDto,
+    @Req() req: any,
+  ) {
+    const user_id = req.user.id;
+    return this.requestService.submitFeedback(user_id, id, dto);
+  }
+}

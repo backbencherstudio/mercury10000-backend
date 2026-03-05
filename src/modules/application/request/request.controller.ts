@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -15,6 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { CreateRequestResponseDto } from 'src/modules/application/request/dto/create-request-response.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { CreateFeedbackDto, CreateRequestDto } from './dto/create-request.dto';
 import { RequestService } from './request.service';
@@ -41,9 +43,25 @@ export class RequestController {
   }
 
   @Get('available')
-  @ApiOperation({ summary: 'Get all pending requests for volunteers' })
-  async getAvailable() {
-    return this.requestService.getAvailableRequests();
+  @ApiOperation({ summary: 'Get all available help requests sorted by latest' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Returns list of requests as seen in the UI',
+    type: [CreateRequestResponseDto],
+  })
+  async getAvailableRequests() {
+    return await this.requestService.getAvailableRequests();
+  }
+
+  @Get(':id/details')
+  @ApiOperation({ summary: 'Fetch single request for View Details screen' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request details',
+    type: CreateRequestResponseDto,
+  })
+  async getSingleRequest(@Param('id') id: string) {
+    return await this.requestService.getSingleRequest(id);
   }
 
   @Patch(':id/accept')
@@ -54,7 +72,7 @@ export class RequestController {
     description: 'Conflict: Already accepted or self-acceptance.',
   })
   async accept(@Param('id') id: string, @Req() req: any) {
-    const volunteer_id = req.user.id;
+    const volunteer_id = req.user.userId;
     return this.requestService.acceptRequest(volunteer_id, id);
   }
 

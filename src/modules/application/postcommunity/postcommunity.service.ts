@@ -144,13 +144,12 @@ export class PostCommunityService {
       where: { id: postId },
       include: {
         user: {
-          select: { id: true, first_name: true, last_name: true, avatar: true },
+          select: { id: true, name: true, avatar: true },
         },
         _count: { select: { likes: true, comments: true } },
-        // Shob comments fetch korbo recursive nesting er jonno
         comments: {
           include: {
-            user: { select: { first_name: true, avatar: true } },
+            user: { select: { name: true, avatar: true } },
           },
           orderBy: { created_at: 'desc' },
         },
@@ -159,16 +158,33 @@ export class PostCommunityService {
 
     if (!post) throw new NotFoundException('Post not found');
 
-    // Image URL format
-    let fullImageUrl = post.image_url;
-    if (post.image_url) {
-      fullImageUrl = TajulStorage.url(
-        `${appConfig().storageUrl.postCommunity}${post.image_url}`,
-      );
-    }
+    // 1. Post Author Avatar Formatting
+    const postAuthorAvatar = post.user.avatar
+      ? TajulStorage.url(`${appConfig().storageUrl.avatar}/${post.user.avatar}`)
+      : null;
 
-    // Build Recursive Comment Tree
-    const commentTree = this.buildCommentTree(post.comments);
+    // 2. Post Image URL Formatting
+    const fullImageUrl = post.image_url
+      ? TajulStorage.url(
+          `${appConfig().storageUrl.postCommunity}${post.image_url}`,
+        )
+      : null;
+
+    // 3. Comments User Avatar Formatting
+    const formattedComments = post.comments.map((comment) => ({
+      ...comment,
+      user: {
+        ...comment.user,
+        avatar: comment.user.avatar
+          ? TajulStorage.url(
+              `${appConfig().storageUrl.avatar}/${comment.user.avatar}`,
+            )
+          : null,
+      },
+    }));
+
+    // 4. Build Recursive Comment Tree with formatted avatars
+    const commentTree = this.buildCommentTree(formattedComments);
 
     return {
       status: 200,
@@ -177,7 +193,11 @@ export class PostCommunityService {
         ...post,
         image_url: fullImageUrl,
         time_ago: formatDistanceToNow(post.created_at, { addSuffix: true }),
-        comments: commentTree, // Nested replies ekhane thakbe
+        user: {
+          ...post.user,
+          avatar: postAuthorAvatar, // Sora-sori URL string
+        },
+        comments: commentTree,
       },
     };
   }

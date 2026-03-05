@@ -15,9 +15,11 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
+import { GetAllPostCommunityResponseDto } from 'src/modules/application/postcommunity/dto/create-postcommunity-res.dto';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import {
   CreateCommentDto,
@@ -54,24 +56,43 @@ export class PostCommunityController {
 
   @Get()
   @ApiOperation({ summary: 'Get all community posts' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of community posts',
+    type: [GetAllPostCommunityResponseDto],
+  })
   getAllPosts() {
     return this.postService.getAllPosts();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get post details with comments and counts' })
+  @ApiResponse({
+    status: 200,
+    description: 'Post details',
+    type: [GetAllPostCommunityResponseDto],
+  })
   getPost(@Param('id') id: string) {
     return this.postService.getPostDetail(id);
   }
 
   @Post(':id/like')
   @ApiOperation({ summary: 'Like or unlike a post' })
+  @ApiResponse({
+    status: 200,
+    description: 'Liked successfully',
+  })
   toggleLike(@Req() req, @Param('id') id: string) {
     return this.postService.toggleLike(req.user.userId, id);
   }
 
   @Post(':id/comment')
   @ApiOperation({ summary: 'Add a comment or reply to a post' })
+  @ApiResponse({
+    status: 200,
+    description: 'Comment added successfully',
+    type: [CreateCommentDto],
+  })
   addComment(
     @Req() req,
     @Param('id') id: string,

@@ -60,13 +60,18 @@ export class RequestController {
 
   @Get('available')
   @ApiOperation({ summary: 'Get all available help requests sorted by latest' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Returns list of requests as seen in the UI',
     type: [CreateRequestResponseDto],
   })
-  async getAvailableRequests() {
-    return await this.requestService.getAvailableRequests();
+  async getAvailableRequests(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ) {
+    return await this.requestService.getAvailableRequests({ page, limit });
   }
 
   @Get('all-disasters')

@@ -36,8 +36,19 @@ export class RequestService {
 
     let attachmentPath = '';
     if (file) {
-      attachmentPath = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
-      await TajulStorage.put(attachmentPath, file.buffer);
+      try {
+        // Generate name: e.g., 1772526..._image.jpg
+        attachmentPath = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+
+        // The path relative to your storage root
+        const relativePath = `requests/${attachmentPath}`;
+
+        // Upload the buffer
+        await TajulStorage.put(relativePath, file.buffer);
+      } catch (uploadError) {
+        console.error('Upload Error:', uploadError);
+        throw new BadRequestException('Failed to upload image.');
+      }
     }
 
     try {
@@ -105,39 +116,52 @@ export class RequestService {
     }
   }
 
-  async getAvailableRequests() {
-    const requests = await this.prisma.request.findMany({
-      where: {
-        status: RequestStatus.PENDING,
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        category: true,
-        location: true,
-        estimated_duration: true,
-        urgency_level: true,
-        skills_needed: true,
-        created_at: true,
-        seeker: {
-          select: {
-            name: true,
-            username: true,
-            avatar: true,
+  async getAvailableRequests(query: { page?: number; limit?: number }) {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // 1. Fetch total count and data in parallel for better performance
+    const [total, requests] = await Promise.all([
+      this.prisma.request.count({
+        where: { status: RequestStatus.PENDING },
+      }),
+      this.prisma.request.findMany({
+        where: {
+          status: RequestStatus.PENDING,
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          location: true,
+          estimated_duration: true,
+          urgency_level: true,
+          skills_needed: true,
+          created_at: true,
+          attachments: {
+            select: { path: true },
+          },
+          seeker: {
+            select: {
+              name: true,
+              username: true,
+              avatar: true,
+            },
           },
         },
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
-    });
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: limit,
+      }),
+    ]);
 
     if (!requests || requests.length === 0) {
       throw new NotFoundException('No available requests found');
     }
 
-    // Mapping to match your CreateRequestResponseDto structure
+    // 2. Map the data
     const mappedData = requests.map((req) => ({
       id: req.id,
       title: req.title,
@@ -147,6 +171,11 @@ export class RequestService {
       location: req.location,
       duration: req.estimated_duration,
       skills: req.skills_needed.join(', '),
+      attachments: req.attachments.map((attachment) => ({
+        path: TajulStorage.url(
+          `${appConfig().storageUrl.requests}${attachment.path}`,
+        ),
+      })),
       time_ago: formatDistanceToNow(req.created_at, { addSuffix: true }),
       user: {
         name: req.seeker.name,
@@ -159,10 +188,17 @@ export class RequestService {
       },
     }));
 
+    // 3. Return with Pagination Metadata
     return {
       success: true,
       message: 'Latest available requests fetched successfully',
       data: mappedData,
+      meta: {
+        total_items: total,
+        current_page: page,
+        limit: limit,
+        total_pages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -209,7 +245,9 @@ export class RequestService {
       id: req.id,
       disaster_image:
         req.attachments.length > 0
-          ? TajulStorage.url(req.attachments[0].path)
+          ? TajulStorage.url(
+              `${appConfig().storageUrl.requests}${req.attachments[0].path}`,
+            )
           : null,
       title: req.title,
       time_ago: formatDistanceToNow(new Date(req.created_at), {
@@ -247,9 +285,11 @@ export class RequestService {
         description: true,
         category: true,
         location: true,
-        // Map functionality-r jonno database-e ei field gulo thaka dorkar
-        // latitude: true,
-        // longitude: true,
+        attachments: {
+          select: {
+            path: true,
+          },
+        },
         estimated_duration: true,
         urgency_level: true,
         skills_needed: true,
@@ -273,15 +313,16 @@ export class RequestService {
       id: req.id,
       title: req.title,
       description: req.description,
-      priority: req.urgency_level, // "High"
-      category: req.category, // "Hurricane preparation"
-      location: req.location, // "Miami Beach, FL"
-      // coordinates: {            // Optional: Map marker placement
-      //   lat: req.latitude,
-      //   lng: req.longitude
-      // },
-      duration: req.estimated_duration, // "2-3 hours"
-      skills: req.skills_needed.join(', '), // "Manual labor, Tools"
+      attachments: req.attachments.map((attachment) => ({
+        path: TajulStorage.url(
+          `${appConfig().storageUrl.requests}${attachment.path}`,
+        ),
+      })),
+      priority: req.urgency_level,
+      category: req.category,
+      location: req.location,
+      duration: req.estimated_duration,
+      skills: req.skills_needed.join(', '),
       time_ago: formatDistanceToNow(req.created_at, { addSuffix: true }),
       user: {
         name: req.seeker.name,

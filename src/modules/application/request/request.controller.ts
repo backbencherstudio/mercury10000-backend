@@ -74,6 +74,48 @@ export class RequestController {
     return await this.requestService.getAvailableRequests({ page, limit });
   }
 
+  @Get('my-requests')
+  @ApiOperation({ summary: 'Get all my help requests sorted by latest' })
+  @ApiResponse({
+    status: 200,
+    description: 'Requests fetched successfully with counts.',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: {
+          type: 'string',
+          example: 'My requests fetched successfully',
+        },
+        stats: {
+          type: 'object',
+          properties: {
+            complete: { type: 'number', example: 0 },
+            pending: { type: 'number', example: 45 },
+          },
+        },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              title: { type: 'string' },
+              status: { type: 'string' },
+              priority: { type: 'string' },
+              time_ago: { type: 'string' },
+              // Add other fields as needed for Swagger
+            },
+          },
+        },
+      },
+    },
+  })
+  async getMyRequests(@Req() req: any) {
+    const seeker_id = req.user.userId;
+    return await this.requestService.getMyRequests(seeker_id);
+  }
+
   @Get('all-disasters')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({

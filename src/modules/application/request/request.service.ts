@@ -202,6 +202,80 @@ export class RequestService {
     };
   }
 
+  async getMyRequests(seeker_id: string) {
+    // Parallel execution for better performance
+    const [requests, counts] = await Promise.all([
+      this.prisma.request.findMany({
+        where: { seeker_id },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          category: true,
+          location: true,
+          estimated_duration: true,
+          urgency_level: true,
+          skills_needed: true,
+          created_at: true,
+          attachments: { select: { path: true } },
+          seeker: {
+            select: { name: true, avatar: true },
+          },
+        },
+        orderBy: { created_at: 'desc' },
+      }),
+      // Single query to get all status counts
+      this.prisma.request.groupBy({
+        by: ['status'],
+        where: { seeker_id },
+        _count: { _all: true },
+      }),
+    ]);
+
+    if (!requests || requests.length === 0) {
+      throw new NotFoundException('No requests found');
+    }
+
+    // Count data map kora
+    const stats = {
+      complete: counts.find((c) => c.status === 'COMPLETED')?._count._all || 0,
+      pending: counts.find((c) => c.status === 'PENDING')?._count._all || 0,
+    };
+
+    const mappedData = requests.map((req) => ({
+      id: req.id,
+      title: req.title,
+      description: req.description,
+      priority: req.urgency_level,
+      category: req.category,
+      location: req.location,
+      duration: req.estimated_duration,
+      skills: req.skills_needed.join(', '),
+      attachments: req.attachments.map((attachment) => ({
+        path: TajulStorage.url(
+          `${appConfig().storageUrl.requests}${attachment.path}`,
+        ),
+      })),
+      time_ago: formatDistanceToNow(req.created_at, { addSuffix: true }),
+      user: {
+        name: req.seeker.name,
+        username: `@${req.seeker.name.toLowerCase().replace(/\s+/g, '')}`,
+        avatar: req.seeker.avatar
+          ? TajulStorage.url(
+              `${appConfig().storageUrl.avatar}/${req.seeker.avatar}`,
+            )
+          : null,
+      },
+    }));
+
+    return {
+      success: true,
+      message: 'My requests fetched successfully',
+      stats, // complete: 0, pending: 45 format e ashbe
+      data: mappedData,
+    };
+  }
+
   async getAllDisasters(query: {
     category?: string;
     page?: number;

@@ -238,7 +238,7 @@ export class RequestService {
 
     // Count data map kora
     const stats = {
-      complete: counts.find((c) => c.status === 'COMPLETED')?._count._all || 0,
+      complete: counts.find((c) => c.status === 'ACCEPTED')?._count._all || 0,
       pending: counts.find((c) => c.status === 'PENDING')?._count._all || 0,
     };
 

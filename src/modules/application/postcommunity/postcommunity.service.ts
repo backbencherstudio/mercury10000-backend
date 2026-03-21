@@ -16,13 +16,11 @@ import {
 export class PostCommunityService {
   constructor(private prisma: PrismaService) {}
 
-
   async createPost(
     userId: string,
     dto: CreatePostDto,
     file?: Express.Multer.File,
   ) {
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { type: true },
@@ -84,7 +82,7 @@ export class PostCommunityService {
     const posts = await this.prisma.postCommunity.findMany({
       include: {
         user: {
-          select: { id: true, first_name: true, last_name: true, avatar: true },
+          select: { id: true, name: true, avatar: true },
         },
         _count: {
           select: { likes: true, comments: true },
@@ -93,11 +91,11 @@ export class PostCommunityService {
           where: { parent_id: null }, // Only root comments initially
           take: 5,
           include: {
-            user: { select: { first_name: true, avatar: true } },
+            user: { select: { name: true, avatar: true } },
             replies: {
               take: 3,
               include: {
-                user: { select: { first_name: true, avatar: true } },
+                user: { select: { name: true, avatar: true } },
                 // Note: Prisma deeper level fetch korar jonno ekhane recursion handle korte hobe
               },
             },

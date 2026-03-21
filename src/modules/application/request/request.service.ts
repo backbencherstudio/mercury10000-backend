@@ -139,6 +139,7 @@ export class RequestService {
           estimated_duration: true,
           urgency_level: true,
           skills_needed: true,
+          status: true,
           created_at: true,
           attachments: {
             select: { path: true },
@@ -170,6 +171,7 @@ export class RequestService {
       category: req.category,
       location: req.location,
       duration: req.estimated_duration,
+      status: req.status,
       skills: req.skills_needed.join(', '),
       attachments: req.attachments.map((attachment) => ({
         path: TajulStorage.url(
@@ -214,6 +216,7 @@ export class RequestService {
           category: true,
           location: true,
           estimated_duration: true,
+          status: true,
           urgency_level: true,
           skills_needed: true,
           created_at: true,
@@ -250,6 +253,7 @@ export class RequestService {
       category: req.category,
       location: req.location,
       duration: req.estimated_duration,
+      status: req.status,
       skills: req.skills_needed.join(', '),
       attachments: req.attachments.map((attachment) => ({
         path: TajulStorage.url(
@@ -416,9 +420,7 @@ export class RequestService {
     };
   }
 
-  // 2. Accept a request (Volunteer)
   async acceptRequest(user_id: string, request_id: string) {
-    // 1. User check kora (Role check)
     const user = await this.prisma.user.findUnique({
       where: { id: user_id },
       select: { type: true },
@@ -426,7 +428,6 @@ export class RequestService {
 
     if (!user) throw new NotFoundException('User not found');
 
-    // 2. Only VOLUNTEER role can accept
     if (user.type !== UserType.VOLUNTEER) {
       throw new BadRequestException('Only volunteers can accept help requests');
     }

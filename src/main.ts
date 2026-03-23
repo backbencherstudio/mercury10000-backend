@@ -21,7 +21,11 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix('api');
   app.enableCors();
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    }),
+  );
 
   app.useStaticAssets(join(process.cwd(), 'public'), {
     index: false,

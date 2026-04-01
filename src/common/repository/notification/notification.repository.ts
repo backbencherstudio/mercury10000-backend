@@ -1,85 +1,57 @@
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { PrismaClient } from 'prisma/generated';
+import { PrismaService } from 'src/prisma/prisma.service';
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
-const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY;
-const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;
-const firebaseClientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-
-if (!admin.apps.length) {
-  if (firebasePrivateKey && firebaseProjectId && firebaseClientEmail) {
-    try {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: firebaseProjectId,
-          clientEmail: firebaseClientEmail,
-          privateKey: firebasePrivateKey.replace(/\\n/g, '\n'),
-        }),
-      });
-      console.log('✅ Firebase initialized successfully.');
-    } catch (error) {
-      console.error('❌ Firebase initialization failed:', error);
-    }
-  } else {
-    console.warn(
-      '⚠️ Firebase credentials missing in .env file. Push notifications will not work.',
-    );
-  }
-}
-
-type NotificationType =
-  | 'new_request'
-  | 'request_accepted'
-  | 'request_completed'
-  | 'request_cancelled'
-  | 'request_rejected'
-  | 'request_feedback';
-
+@Injectable()
 export class NotificationRepository {
-  static async createNotification(payload: {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createNotification(payload: {
     sender_id: string;
     receiver_id: string;
     text: string;
-    type: NotificationType;
+    type: string;
     entity_id: string;
   }) {
     const { sender_id, receiver_id, text, type, entity_id } = payload;
 
     try {
-      let notificationEvent = await prisma.notificationEvent.findFirst({
+      let notificationEvent = await this.prisma.notificationEvent.findFirst({
         where: { type, text },
       });
 
       if (!notificationEvent) {
-        notificationEvent = await prisma.notificationEvent.create({
+        notificationEvent = await this.prisma.notificationEvent.create({
           data: { type, text },
         });
       }
-
-      const newNotification = await prisma.notification.create({
+      const notification = await this.prisma.notification.create({
         data: {
           sender_id,
           receiver_id,
           entity_id,
           notification_event_id: notificationEvent.id,
+          latest_news: true,
+          sign_of_disaster: true,
+          message_news: true,
+        },
+        include: {
+          notification_event: true,
         },
       });
 
-      this.sendPushNotification(receiver_id, type, text, entity_id);
+      this.sendFCM(receiver_id, type, text, entity_id);
 
-      return newNotification;
+      console.log('Notification sent successfully', notification);
+
+      return notification;
     } catch (error) {
-      console.error('Error creating notification:', error);
-      throw error;
+      console.error('❌ Notification Error:', error);
+      throw new InternalServerErrorException('Failed to process notification');
     }
   }
 
-  private static async sendPushNotification(
+  private async sendFCM(
     receiverId: string,
     type: string,
     text: string,
@@ -88,43 +60,47 @@ export class NotificationRepository {
     if (!admin.apps.length) return;
 
     try {
-      const user = await prisma.user.findUnique({
+      const user = await this.prisma.user.findUnique({
         where: { id: receiverId },
         select: { fcm_token: true },
       });
 
-      if (user?.fcm_token) {
-        const message: admin.messaging.Message = {
-          token: user.fcm_token,
+      if (!user?.fcm_token) return;
+
+      const message: admin.messaging.Message = {
+        token: user.fcm_token,
+        notification: {
+          title: this.formatTitle(type),
+          body: text,
+        },
+        data: {
+          entity_id: String(entityId),
+          type: String(type),
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        android: {
+          priority: 'high',
           notification: {
-            title: this.getNotificationTitle(type),
-            body: text,
+            channelId: 'high_importance_channel',
+            sound: 'default',
           },
-
-          data: {
-            entity_id: String(entityId),
-            type: String(type),
-            click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        apns: {
+          payload: {
+            aps: { sound: 'default', badge: 1 },
           },
-        };
+        },
+      };
 
-        await admin.messaging().send(message);
-      } else {
-      }
-    } catch (error) {
-      console.error('❌ Error sending FCM:', error);
+      console.log('FCM Message:', message);
+
+      await admin.messaging().send(message);
+    } catch (fcmError) {
+      console.error('❌ FCM Send Error:', fcmError);
     }
   }
 
-  private static getNotificationTitle(type: string): string {
-    const titles: Record<string, string> = {
-      new_request: 'New Request',
-      request_accepted: 'Request Accepted',
-      request_completed: 'Request Completed',
-      request_cancelled: 'Request Cancelled',
-      request_rejected: 'Request Rejected',
-      request_feedback: 'Request Feedback',
-    };
-    return titles[type] || 'New Notification';
+  private formatTitle(type: string): string {
+    return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   }
 }

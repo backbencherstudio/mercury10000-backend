@@ -128,7 +128,7 @@ export class AuthController {
   })
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@Req() req: Request, @Res() res: Response) {
+  async login(@Req() req: Request, @Res() res: Response, @Body() body: { fcm_token?: string }) {
     try {
       const user_id = req.user.id;
       const user_email = req.user.email;
@@ -136,6 +136,7 @@ export class AuthController {
       const response = await this.authService.login({
         userId: user_id,
         email: user_email,
+        fcm_token: body.fcm_token,
       });
 
       // store to secure cookies

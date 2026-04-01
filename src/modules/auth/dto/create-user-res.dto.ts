@@ -44,6 +44,10 @@ export class LoginUserResDto {
   @ApiProperty({ example: 'password123' })
   @MinLength(8, { message: 'Password should be minimum 8 characters' })
   password: string;
+
+  @ApiProperty({ example: 'fcm-token' })
+  @IsString()
+  fcm_token: string;
 }
 export class ForgotPasswordDto {
   @ApiProperty({ example: 'john@example.com' })
@@ -111,7 +115,6 @@ export class UpdateUserResDto {
   avatar?: string;
 }
 
-
 export class VolunteerListResDto {
   @ApiProperty({ example: 'uuid-string' })
   id: string;
@@ -131,4 +134,3 @@ export class VolunteerListResDto {
   @ApiProperty({ example: '2023-10-27T10:00:00.000Z' })
   created_at: Date;
 }
-

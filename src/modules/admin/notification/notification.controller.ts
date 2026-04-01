@@ -18,10 +18,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { NotificationListResponse, UpdateNotificationDtoRes } from 'src/modules/admin/notification/dto/create-notification.dto';
+import {
+  NotificationListResponse,
+  UpdateNotificationDtoRes,
+} from 'src/modules/admin/notification/dto/create-notification.dto';
+import { UpdateNotificationDto } from 'src/modules/application/notification/dto/update-notification.dto';
 import { JwtAuthGuard } from '../../../modules/auth/guards/jwt-auth.guard';
 import { NotificationService } from './notification.service';
-import { UpdateNotificationDto } from 'src/modules/application/notification/dto/update-notification.dto';
 
 @ApiBearerAuth()
 @ApiTags('Notification')
@@ -39,9 +42,10 @@ export class NotificationController {
     type: [NotificationListResponse],
   })
   @Get()
-  async findAll() {
+  async findAll(@Req() req: Request) {
+const user_id = req.user.userId;
     try {
-      const notification = await this.notificationService.findAll();
+      const notification = await this.notificationService.findAll(user_id);
 
       return notification;
     } catch (error) {
@@ -52,7 +56,6 @@ export class NotificationController {
     }
   }
 
-
   @Patch('update-settings')
   @HttpCode(HttpStatus.OK)
   @ApiBody({ type: UpdateNotificationDtoRes })
@@ -62,7 +65,7 @@ export class NotificationController {
     type: [UpdateNotificationDtoRes],
   })
   async update(@Body() updateDto: UpdateNotificationDto, @Req() req: any) {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return this.notificationService.updateSettings(userId, updateDto);
   }
 

@@ -219,6 +219,7 @@ export class AuthService {
         },
         userid: user.id,
         type: user.type,
+        fcm_token: user.fcm_token,
       };
     } catch (error) {
       return {

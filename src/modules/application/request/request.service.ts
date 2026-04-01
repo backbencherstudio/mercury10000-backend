@@ -18,6 +18,7 @@ export class RequestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly messageGateway: MessageGateway,
+    private readonly notificationRepo: NotificationRepository,
   ) {}
 
   async createRequest(
@@ -82,10 +83,10 @@ export class RequestService {
         select: { id: true },
       });
 
-      // 5. Send Notification using Repository
+      // ৫. Send Notification using Repository
       if (volunteers.length > 0) {
         const notificationPromises = volunteers.map((volunteer) => {
-          const notificationPayload: any = {
+          const notificationPayload = {
             sender_id: user.id,
             receiver_id: volunteer.id,
             text: `New request: ${request.title} by ${user.name}`,
@@ -93,11 +94,8 @@ export class RequestService {
             entity_id: request.id,
           };
 
-          return NotificationRepository.createNotification(notificationPayload);
+          return this.notificationRepo.createNotification(notificationPayload);
         });
-
-        // Parallel execution for better speed
-        await Promise.all(notificationPromises);
       }
 
       return {
@@ -614,7 +612,7 @@ export class RequestService {
         entity_id: request.id,
       };
 
-      return NotificationRepository.createNotification(notificationPayload);
+      return this.notificationRepo.createNotification(notificationPayload);
     }
 
     return {
@@ -700,7 +698,7 @@ export class RequestService {
           entity_id: request.id,
         };
 
-        await NotificationRepository.createNotification(notificationPayload);
+        await this.notificationRepo.createNotification(notificationPayload);
       }
 
       return {

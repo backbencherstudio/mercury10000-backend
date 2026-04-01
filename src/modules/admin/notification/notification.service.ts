@@ -8,9 +8,13 @@ import { PrismaService } from '../../../prisma/prisma.service';
 export class NotificationService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(user_id: string) {
     try {
       const notifications = await this.prisma.notification.findMany({
+        where: {
+          receiver_id: user_id,
+        },
+        orderBy: { created_at: 'desc' },
         select: {
           id: true,
           sender_id: true,

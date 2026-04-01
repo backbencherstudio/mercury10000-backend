@@ -3,6 +3,7 @@ import * as bcrypt from 'bcrypt';
 import { UserType } from 'prisma/generated/client';
 import * as QRCode from 'qrcode';
 import * as speakeasy from 'speakeasy';
+import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
 import appConfig from '../../../config/app.config';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { Role } from '../../guard/role/role.enum';
@@ -64,7 +65,7 @@ export class UserRepository {
   }
 
   async getAllVolunteers() {
-    return await this.prisma.user.findMany({
+    const volunteers = await this.prisma.user.findMany({
       where: {
         type: UserType.VOLUNTEER,
       },
@@ -75,11 +76,34 @@ export class UserRepository {
         type: true,
         points: true,
         created_at: true,
+        avatar: true,
       },
       orderBy: {
         created_at: 'desc',
       },
     });
+
+    const volunteer_data = volunteers.map((volunteer) => {
+      return {
+        id: volunteer.id,
+        name: volunteer.name,
+        email: volunteer.email,
+        type: volunteer.type,
+        points: volunteer.points,
+        created_at: volunteer.created_at,
+        avatar: volunteer.avatar
+          ? TajulStorage.url(
+              appConfig().storageUrl.avatar + '/' + volunteer.avatar,
+            )
+          : '',
+      };
+    });
+
+    return {
+      success: true,
+      message: 'Volunteers fetched successfully',
+      data: volunteer_data,
+    };
   }
 
   /**

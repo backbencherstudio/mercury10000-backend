@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
+import { NotificationRepository } from 'src/common/repository/notification/notification.repository';
 import appConfig from '../../../config/app.config';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MessageGateway } from '../message/message.gateway';
@@ -14,6 +15,7 @@ export class ConversationService {
   constructor(
     private prisma: PrismaService,
     private readonly messageGateway: MessageGateway,
+    private readonly notificationRepo: NotificationRepository,
   ) {}
 
   // *create conversation
@@ -102,6 +104,17 @@ export class ConversationService {
           : null,
       })),
     };
+
+    //notification
+    const notificationPayload = {
+      sender_id: sender,
+      receiver_id: participant_id,
+      text: `${formattedParticipants.participants.find((p) => p.userId !== sender)?.name} sent you a message`,
+      type: 'message' as any,
+      entity_id: newConversation.id,
+    };
+
+    await this.notificationRepo.createNotification(notificationPayload);
 
     return {
       message: 'Conversation created successfully',

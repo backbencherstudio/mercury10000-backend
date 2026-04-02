@@ -35,6 +35,7 @@ export class AuthService {
         select: {
           id: true,
           name: true,
+          phone_number: true,
           email: true,
           avatar: true,
           address: true,
@@ -232,77 +233,55 @@ export class AuthService {
   // update user
   async updateUser(
     userId: string,
-    updateUserDto: UpdateUserDto,
+    dto: UpdateUserDto,
     image?: Express.Multer.File,
   ) {
     try {
-      const data: any = {};
+      // 1. User fetch kora (Checking if exists)
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return { success: false, message: 'User not found' };
 
-      if (updateUserDto.name) data.name = updateUserDto.name;
-
-      if (updateUserDto.phone_number) {
-        const user = await this.userRepository.exist({
-          field: 'phone_number',
-          value: updateUserDto.phone_number,
+      // 2. Phone unique check (Jodi phone change hoy)
+      if (dto.phone_number && dto.phone_number !== user.phone_number) {
+        const exists = await this.prisma.user.findFirst({
+          where: { phone_number: dto.phone_number },
         });
-        if (user) {
-          return {
-            success: false,
-            message: 'Phone number already exist',
-          };
-        }
-        data.phone_number = updateUserDto.phone_number;
+        if (exists)
+          return { success: false, message: 'Phone number already exists' };
       }
 
+      // 3. Image Handle kora
+      let avatarName = user.avatar;
       if (image) {
-        // delete old image from storage
-        const oldImage = await this.prisma.user.findFirst({
-          where: { id: userId },
-          select: { avatar: true },
-        });
-        if (oldImage.avatar) {
+        // Old image delete (jodi thake)
+        if (user.avatar)
           await TajulStorage.delete(
-            appConfig().storageUrl.avatar + '/' + oldImage.avatar,
+            `${appConfig().storageUrl.avatar}/${user.avatar}`,
           );
-        }
 
-        // upload file
-        const fileName = `${StringHelper.randomString()}_${image.originalname}`;
+        // New image upload
+        avatarName = `${StringHelper.randomString()}_${image.originalname}`;
         await TajulStorage.put(
-          appConfig().storageUrl.avatar + '/' + fileName,
+          `${appConfig().storageUrl.avatar}/${avatarName}`,
           image.buffer,
         );
-
-        data.avatar = fileName;
       }
 
-      const user = await this.userRepository.getUserDetails(userId);
-      if (user) {
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: {
-            ...data,
-          },
-        });
+      // 4. Final Update
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...dto,
+          avatar: avatarName,
+          updated_at: new Date(),
+        },
+      });
 
-        return {
-          success: true,
-          message: 'User updated successfully',
-        };
-      } else {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
+      return { success: true, message: 'User updated successfully' };
     } catch (error) {
-      return {
-        success: false,
-        message: error.message,
-      };
+      return { success: false, message: error.message };
     }
   }
-
   // done
   async forgotPassword(email) {
     try {

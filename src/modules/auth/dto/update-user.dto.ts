@@ -11,11 +11,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   phone_number?: string;
 
-  @ApiPropertyOptional({ example: 'John@gmail.com' })
-  @IsOptional()
-  email?: string;
-
   @ApiPropertyOptional({ example: 'image.jpg' })
   @IsOptional()
-  avatar?: string;
+  image?: string;
 }

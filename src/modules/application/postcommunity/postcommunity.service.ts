@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { formatDistanceToNow } from 'date-fns';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
+import appConfig from 'src/config/app.config';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreateCommentDto,
@@ -113,15 +114,15 @@ export class PostCommunityService {
     const formattedPosts = posts.map((post) => {
       let fullImageUrl = post.image_url;
       if (post.image_url) {
-        fullImageUrl = `/public/storage/post-community/${post.image_url}`;
+        fullImageUrl = TajulStorage.url(
+          `${appConfig().storageUrl.postCommunity}/${post.image_url}`,
+        );
       }
 
       return {
         ...post,
         image_url: fullImageUrl,
-        // Post creation time
         time_ago: formatDistanceToNow(post.created_at, { addSuffix: true }),
-        // Recursive call for comments and their replies
         comments: this.buildCommentTree(post.comments),
       };
     });
@@ -164,7 +165,9 @@ export class PostCommunityService {
       ...comment,
       user: {
         ...comment.user,
-        avatar: `/public/storage/avatar/${comment.user.avatar}`,
+        avatar: TajulStorage.url(
+          `${appConfig().storageUrl.avatar}/${comment.user.avatar}`,
+        ),
       },
     }));
 
@@ -176,11 +179,19 @@ export class PostCommunityService {
       message: 'Post fetched successfully',
       data: {
         ...post,
-        image_url: fullImageUrl,
+        image_url: post.image_url
+          ? TajulStorage.url(
+              `${appConfig().storageUrl.avatar}/${post.image_url}`,
+            )
+          : null,
         time_ago: formatDistanceToNow(post.created_at, { addSuffix: true }),
         user: {
           ...post.user,
-          avatar: postAuthorAvatar, // Sora-sori URL string
+          avatar: post.user.avatar
+            ? TajulStorage.url(
+                `${appConfig().storageUrl.avatar}/${post.user.avatar}`,
+              )
+            : null,
         },
         comments: commentTree,
       },
@@ -211,14 +222,35 @@ export class PostCommunityService {
         content: dto.content,
         post_id: postId,
         author_id: userId,
-        parent_id: dto.parent_id || null, // If parent_id exists, it's a reply
+        parent_id: dto.parent_id || null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
       },
     });
+
+    const customizedAvatar = comment.user.avatar
+      ? TajulStorage.url(
+          `${appConfig().storageUrl.avatar}/${comment.user.avatar}`,
+        )
+      : null;
 
     return {
       message: 'Comment created successfully',
       status: 200,
-      data: comment,
+      data: {
+        ...comment,
+        user: {
+          ...comment.user,
+          avatar: customizedAvatar, // Customized avatar path
+        },
+      },
     };
   }
 
@@ -235,7 +267,9 @@ export class PostCommunityService {
         user: {
           ...comment.user,
           avatar: comment.user.avatar
-            ? `/public/storage/avatar/${comment.user.avatar}`
+            ? TajulStorage.url(
+                `${appConfig().storageUrl.avatar}/${comment.user.avatar}`,
+              )
             : null,
         },
         // Recursion happens here

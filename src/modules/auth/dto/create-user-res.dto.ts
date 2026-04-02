@@ -102,17 +102,13 @@ export class UpdateUserResDto {
   @IsOptional()
   phone_number?: string;
 
-  @ApiPropertyOptional({ example: 'john@example.com' })
-  @IsOptional()
-  email?: string;
-
   @ApiPropertyOptional({
     example: 'image.jpg',
     type: 'string',
     format: 'binary',
   })
   @IsOptional()
-  avatar?: string;
+  image?: string;
 }
 
 export class VolunteerListResDto {

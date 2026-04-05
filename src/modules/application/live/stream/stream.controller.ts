@@ -33,11 +33,7 @@ export class StreamController {
     return this.streamService.startStream(req.user.userId, body.title);
   }
 
-  @Get('active-list')
-  @ApiOperation({ summary: 'Get all active live streams' })
-  async getActive() {
-    return this.streamService.getActiveStreams();
-  }
+
 
   @Get('join/:room_name')
   @ApiOperation({ summary: 'Public endpoint for guests to join a live' })
@@ -45,6 +41,23 @@ export class StreamController {
   async join(@Param('room_name') room_name: string) {
     const guestId = `guest_${Math.floor(Math.random() * 10000)}`;
     return this.streamService.getPublicJoinToken(room_name, guestId);
+  }
+
+  @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Post('stop')
+@ApiOperation({ summary: 'Host stops live and ends recording' })
+@ApiBody({
+  schema: { type: 'object', properties: { room_name: { type: 'string' } } },
+})
+async stop(@Req() req, @Body() body: { room_name: string }) {
+  return this.streamService.stopStream(req.user.userId, body.room_name);
+}
+
+    @Get('active-list')
+  @ApiOperation({ summary: 'Get all active live streams' })
+  async getActive() {
+    return this.streamService.getActiveStreams();
   }
 
   @Get('videos')

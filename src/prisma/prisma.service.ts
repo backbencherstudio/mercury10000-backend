@@ -7,6 +7,9 @@ import {
 import appConfig from '../config/app.config';
 import { PrismaClient } from 'prisma/generated/client';
 
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -21,9 +24,10 @@ export class PrismaService
       throw new Error('DATABASE_URL is not defined in environment variables');
     }
 
-    super({
-      datasourceUrl,
-    });
+    const pool = new Pool({ connectionString: datasourceUrl });
+    const adapter = new PrismaPg(pool);
+
+    super({ adapter });
 
     if (process.env.PRISMA_ENV == '1') {
       this.logger.log('Prisma Middleware disabled');

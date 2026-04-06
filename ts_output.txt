@@ -1,0 +1,55 @@
+src/app.module.ts(17,31): error TS2307: Cannot find module 'src/modules/application/request/request.module' or its corresponding type declarations.
+src/common/guard/has-plan/has-plan.guard.spec.ts(5,12): error TS2554: Expected 1 arguments, but got 0.
+src/common/repository/notification/notification.repository.ts(7,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/common/repository/repository.module.ts(2,30): error TS2307: Cannot find module 'src/prisma/prisma.module' or its corresponding type declarations.
+src/common/repository/user/user.repository.ts(6,30): error TS2307: Cannot find module 'src/common/lib/Disk/TajulStorage' or its corresponding type declarations.
+src/modules/admin/notification/notification.controller.ts(24,8): error TS2307: Cannot find module 'src/modules/admin/notification/dto/create-notification.dto' or its corresponding type declarations.
+src/modules/admin/notification/notification.controller.ts(25,39): error TS2307: Cannot find module 'src/modules/application/notification/dto/update-notification.dto' or its corresponding type declarations.
+src/modules/admin/notification/notification.service.ts(2,39): error TS2307: Cannot find module 'src/modules/application/notification/dto/update-notification.dto' or its corresponding type declarations.
+src/modules/admin/user/user.service.ts(8,30): error TS2307: Cannot find module 'src/common/lib/Disk/TajulStorage' or its corresponding type declarations.
+src/modules/application/application.module.ts(6,31): error TS2307: Cannot find module 'src/modules/application/request/request.module' or its corresponding type declarations.
+src/modules/application/application.module.ts(7,30): error TS2307: Cannot find module 'src/modules/application/live/stream/stream.module' or its corresponding type declarations.
+src/modules/application/application.module.ts(8,28): error TS2307: Cannot find module 'src/modules/application/live/call/call.module' or its corresponding type declarations.
+src/modules/application/application.module.ts(9,31): error TS2307: Cannot find module 'src/modules/application/live/livekit/livekit.module' or its corresponding type declarations.
+src/modules/application/live/call/call.controller.ts(11,8): error TS2307: Cannot find module 'src/modules/application/live/dto/response-dto' or its corresponding type declarations.
+src/modules/application/live/call/call.controller.ts(12,30): error TS2307: Cannot find module 'src/modules/auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/application/live/call/call.controller.ts(14,40): error TS2307: Cannot find module 'src/common/repository/notification/notification.repository' or its corresponding type declarations.
+src/modules/application/live/stream/stream.controller.ts(17,30): error TS2307: Cannot find module 'src/modules/auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/application/live/stream/stream.service.ts(2,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/modules/application/postcommunity/postcommunity.controller.spec.ts(2,10): error TS2724: '"./postcommunity.controller"' has no exported member named 'PostcommunityController'. Did you mean 'PostCommunityController'?
+src/modules/application/postcommunity/postcommunity.controller.spec.ts(3,10): error TS2724: '"./postcommunity.service"' has no exported member named 'PostcommunityService'. Did you mean 'PostCommunityService'?
+src/modules/application/postcommunity/postcommunity.controller.ts(22,48): error TS2307: Cannot find module 'src/modules/application/postcommunity/dto/create-postcommunity-res.dto' or its corresponding type declarations.
+src/modules/application/postcommunity/postcommunity.controller.ts(23,30): error TS2307: Cannot find module 'src/modules/auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/application/postcommunity/postcommunity.service.ts(8,30): error TS2307: Cannot find module 'src/common/lib/Disk/TajulStorage' or its corresponding type declarations.
+src/modules/application/postcommunity/postcommunity.service.ts(9,40): error TS2307: Cannot find module 'src/common/repository/notification/notification.repository' or its corresponding type declarations.
+src/modules/application/postcommunity/postcommunity.service.ts(10,23): error TS2307: Cannot find module 'src/config/app.config' or its corresponding type declarations.
+src/modules/application/postcommunity/postcommunity.service.ts(11,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/modules/application/request/request.controller.ts(28,42): error TS2307: Cannot find module 'src/modules/application/request/dto/create-request-response.dto' or its corresponding type declarations.
+src/modules/application/request/request.controller.ts(29,30): error TS2307: Cannot find module 'src/modules/auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/application/request/request.module.ts(2,35): error TS2307: Cannot find module 'src/modules/application/request/request.controller' or its corresponding type declarations.
+src/modules/application/request/request.module.ts(3,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/modules/application/request/request.service.ts(9,30): error TS2307: Cannot find module 'src/common/lib/Disk/TajulStorage' or its corresponding type declarations.
+src/modules/application/request/request.service.ts(10,40): error TS2307: Cannot find module 'src/common/repository/notification/notification.repository' or its corresponding type declarations.
+src/modules/application/request/request.service.ts(11,23): error TS2307: Cannot find module 'src/config/app.config' or its corresponding type declarations.
+src/modules/application/request/request.service.ts(12,32): error TS2307: Cannot find module 'src/modules/chat/message/message.gateway' or its corresponding type declarations.
+src/modules/application/request/request.service.ts(13,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/modules/auth/auth.controller.spec.ts(103,22): error TS2554: Expected 3 arguments, but got 2.
+src/modules/auth/auth.controller.spec.ts(180,19): error TS2339: Property 'data' does not exist on type '{ success: boolean; message: any; }'.
+src/modules/auth/auth.controller.ts(38,8): error TS2307: Cannot find module 'src/modules/auth/dto/create-user-res.dto' or its corresponding type declarations.
+src/modules/auth/auth.controller.ts(39,32): error TS2307: Cannot find module 'src/modules/auth/guards/local-auth.guard' or its corresponding type declarations.
+src/modules/chat/conversation/conversation.service.ts(6,30): error TS2307: Cannot find module 'src/common/lib/Disk/TajulStorage' or its corresponding type declarations.
+src/modules/chat/conversation/conversation.service.ts(7,40): error TS2307: Cannot find module 'src/common/repository/notification/notification.repository' or its corresponding type declarations.
+src/modules/chat/message/message.controller.ts(24,31): error TS2307: Cannot find module 'src/common/pagination' or its corresponding type declarations.
+src/modules/chat/message/message.service.ts(6,30): error TS2307: Cannot find module 'src/common/helper/string.helper' or its corresponding type declarations.
+src/modules/chat/message/message.service.ts(7,49): error TS2307: Cannot find module 'src/common/pagination' or its corresponding type declarations.
+src/modules/chat/notification/notification.controller.ts(2,30): error TS2307: Cannot find module 'src/modules/auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/chat/notification/notification.module.ts(2,30): error TS2307: Cannot find module 'src/prisma/prisma.module' or its corresponding type declarations.
+src/modules/chat/notification/notification.service.ts(2,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/modules/chat/user/user.service.ts(2,10): error TS2305: Module '"@prisma/client"' has no exported member 'PrismaClient'.
+src/modules/payment/deposite/deposite.controller.ts(5,30): error TS2307: Cannot find module 'src/modules/auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/payment/deposite/deposite.module.ts(4,30): error TS2307: Cannot find module 'src/prisma/prisma.module' or its corresponding type declarations.
+src/modules/payment/deposite/deposite.service.ts(3,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/modules/payment/deposite/deposite.service.ts(5,31): error TS2307: Cannot find module 'src/common/lib/Payment/stripe/StripePayment' or its corresponding type declarations.
+src/modules/payment/withdraw/withdraw.controller.ts(11,30): error TS2307: Cannot find module 'src/modules/auth/guards/jwt-auth.guard' or its corresponding type declarations.
+src/modules/payment/withdraw/withdraw.service.ts(10,31): error TS2307: Cannot find module 'src/prisma/prisma.service' or its corresponding type declarations.
+src/modules/payment/withdraw/withdraw.service.ts(11,31): error TS2307: Cannot find module 'src/common/lib/Payment/stripe/StripePayment' or its corresponding type declarations.

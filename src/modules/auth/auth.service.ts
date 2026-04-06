@@ -25,7 +25,7 @@ export class AuthService {
     @InjectRedis() private readonly redis: Redis,
   ) {}
 
-  //
+  
   async me(userId: string) {
     try {
       const user = await this.prisma.user.findFirst({

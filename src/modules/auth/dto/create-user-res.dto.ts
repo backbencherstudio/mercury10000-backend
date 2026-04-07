@@ -6,7 +6,7 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { UserType } from 'prisma/generated';
+import { UserType } from '@prisma/client';
 
 export class CreateUserResDto {
   @ApiPropertyOptional({ example: 'John Doe' })

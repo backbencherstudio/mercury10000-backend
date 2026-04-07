@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UserType } from 'prisma/generated/client';
+import { UserType } from '@prisma/client';
 import * as QRCode from 'qrcode';
 import * as speakeasy from 'speakeasy';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';

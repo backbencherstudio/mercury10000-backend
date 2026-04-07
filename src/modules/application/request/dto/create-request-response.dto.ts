@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { RequestStatus, RequestCategory, UrgencyLevel } from 'prisma/generated';
+import { RequestStatus, RequestCategory, UrgencyLevel } from '@prisma/client';
 
 export class AttachmentResponseDto {
   @ApiProperty({ example: 'uuid-123' })

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
-import { Prisma, RequestStatus, UserType } from 'prisma/generated';
+import { Prisma, RequestStatus, UserType } from '@prisma/client';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
 import { NotificationRepository } from 'src/common/repository/notification/notification.repository';
 import appConfig from 'src/config/app.config';

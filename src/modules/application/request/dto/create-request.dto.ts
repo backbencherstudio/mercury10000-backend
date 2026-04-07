@@ -8,7 +8,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { RequestCategory, UrgencyLevel } from 'prisma/generated';
+import { RequestCategory, UrgencyLevel } from '@prisma/client';
 
 export class CreateRequestDto {
   @ApiProperty({ example: 'E-commerce Website' })

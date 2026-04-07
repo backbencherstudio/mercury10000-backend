@@ -83,6 +83,10 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(process.env.PORT ?? 6001, '0.0.0.0');
+  const port = process.env.PORT ?? 6003;
+  await app.listen(port);
+  console.log(
+    `🚀 Application is running on: http://localhost:${port}/api/docs`,
+  );
 }
 bootstrap();

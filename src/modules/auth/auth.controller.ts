@@ -26,6 +26,7 @@ import {
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
+import { ApiAllAuth } from 'src/modules/auth/decorators/get-user.decorator';
 import {
   ChangePasswordDto,
   CreateUserResDto,
@@ -50,7 +51,7 @@ export class AuthController {
   // *get user details
   @ApiOperation({ summary: 'Get current user details' })
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+  @ApiAllAuth()
   @Get('me')
   async me(@Req() req: Request) {
     try {

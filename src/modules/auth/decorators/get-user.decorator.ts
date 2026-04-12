@@ -1,4 +1,5 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { applyDecorators, createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 export const GetUser = createParamDecorator(
   (data: string | undefined, ctx: ExecutionContext) => {
@@ -8,3 +9,11 @@ export const GetUser = createParamDecorator(
     return data ? user?.[data] : user;
   },
 );
+
+export function ApiAllAuth() {
+  return applyDecorators(
+    ApiBearerAuth('user_token'),
+    ApiBearerAuth('admin_token'),
+    ApiBearerAuth('secretery_token'),
+  );
+}

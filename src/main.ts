@@ -67,26 +67,89 @@ async function bootstrap() {
     },
   });
 
-  // swagger
-  const options = new DocumentBuilder()
-    .setTitle(`${process.env.APP_NAME} api`)
-    .setDescription(`${process.env.APP_NAME} api docs`)
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle(`${process.env.APP_NAME} API`)
+    .setDescription(`${process.env.APP_NAME} API Docs`)
     .setVersion('1.0')
     .addTag(`${process.env.APP_NAME}`)
-    .addBearerAuth()
+    // Security definitions
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
+      'user_token',
+    )
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
+      'admin_token',
+    )
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
+      'secretery_token',
+    )
+    /** * IMPORTANT: GLOBAL SECURITY REQUIREMENT
+     * Eta use korle apnar prottekta API end-point e bar bar @ApiBearerAuth() likhte hobe na.
+     * Swagger UI automatic lock icon dekhabe ebong apni authorize korle token pathabe.
+     */
+    .addSecurityRequirements('user_token')
+    .addSecurityRequirements('admin_token')
+    .addSecurityRequirements('secretery_token')
     .build();
-  const document = SwaggerModule.createDocument(app, options);
+
+  const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
       persistAuthorization: true,
+      defaultModelsExpandDepth: -1,
+      displayRequestDuration: true,
+
+      // Auto authorization after login
+      responseInterceptor: (response) => {
+        try {
+          if (
+            response.url.includes('/auth/login') &&
+            (response.status === 200 || response.status === 201)
+          ) {
+            const data = response.obj || JSON.parse(response.data);
+            const token = data?.authorization?.access_token;
+            const role = data?.type; // role matching logic
+
+            if (token) {
+              const authKey =
+                role === 'admin'
+                  ? 'admin_token'
+                  : role === 'secretery'
+                    ? 'secretery_token'
+                    : 'user_token';
+
+              const ui = window['ui'];
+              if (ui) {
+                const authObj = {};
+                authObj[authKey] = {
+                  name: authKey,
+                  schema: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                  },
+                  value: token,
+                };
+                ui.authActions.authorize(authObj);
+                console.log(`✅ Auto-authorized as ${authKey}`);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Interceptor error:', err);
+        }
+        return response;
+      },
     },
   });
 
-  const port = process.env.PORT ?? 6003;
-  await app.listen(port);
-  console.log(
-    `🚀 Application is running on: http://localhost:${port}/api/docs`,
-  );
+  const port = process.env.PORT ?? 4000;
+  await app.listen(port, '0.0.0.0', () => {
+    console.log(`🚀 Server: http://localhost:${port}/api/docs`);
+  });
 }
 bootstrap();

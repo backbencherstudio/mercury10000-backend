@@ -1,6 +1,5 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -400,6 +399,8 @@ model Attachment {
   path       String?
   request_id String
   request    Request   @relation("RequestAttachments", fields: [request_id], references: [id], onDelete: Cascade)
+  lead_id    String?
+  lead       Lead?     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
 
   @@map("attachments")
 }
@@ -439,4 +440,50 @@ enum MessageStatus {
   DELIVERED
   READ
   PENDING
+}
+
+
+// ============================================================================================
+
+enum LeadStatus {
+  SCHEDULED
+  ACTIVE
+  SUBMITTED
+  INVALID
+  CLOSED
+}
+
+model Lead {
+  id             String      @id @default(uuid())
+  lead_no        String      @unique @map("lead_no")
+  address        String?
+  name           String
+  phone          String      @unique
+  notes          String?     @db.Text
+  status         LeadStatus  @default(ACTIVE)
+  scheduled_time DateTime?   @map("scheduled_time")
+  
+  // Timestamps
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @default(now())
+
+  // Relations
+  trade          Trade?
+  files          Attachment[]
+
+  @@map("leads")
+  @@index([status])
+  @@index([lead_no])
+}
+
+model Trade {
+  id         String   @id @default(uuid())
+  name       String
+  lead_id    String   @unique @map("lead_id")
+  lead       Lead     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
+  
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  @@map("trades")
 }

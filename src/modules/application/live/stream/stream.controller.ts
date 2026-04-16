@@ -10,6 +10,7 @@ import {
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiExcludeController,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -18,6 +19,7 @@ import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { StreamService } from './stream.service';
 
 @ApiTags('Live Stream')
+@ApiExcludeController()
 @Controller('v1/streams')
 export class StreamController {
   constructor(private readonly streamService: StreamService) {}
@@ -33,8 +35,6 @@ export class StreamController {
     return this.streamService.startStream(req.user.userId, body.title);
   }
 
-
-
   @Get('join/:room_name')
   @ApiOperation({ summary: 'Public endpoint for guests to join a live' })
   @ApiParam({ name: 'room_name', type: 'string' })
@@ -44,17 +44,17 @@ export class StreamController {
   }
 
   @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-@Post('stop')
-@ApiOperation({ summary: 'Host stops live and ends recording' })
-@ApiBody({
-  schema: { type: 'object', properties: { room_name: { type: 'string' } } },
-})
-async stop(@Req() req, @Body() body: { room_name: string }) {
-  return this.streamService.stopStream(req.user.userId, body.room_name);
-}
+  @UseGuards(JwtAuthGuard)
+  @Post('stop')
+  @ApiOperation({ summary: 'Host stops live and ends recording' })
+  @ApiBody({
+    schema: { type: 'object', properties: { room_name: { type: 'string' } } },
+  })
+  async stop(@Req() req, @Body() body: { room_name: string }) {
+    return this.streamService.stopStream(req.user.userId, body.room_name);
+  }
 
-    @Get('active-list')
+  @Get('active-list')
   @ApiOperation({ summary: 'Get all active live streams' })
   async getActive() {
     return this.streamService.getActiveStreams();

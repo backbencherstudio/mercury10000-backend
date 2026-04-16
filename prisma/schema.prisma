@@ -6,7 +6,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 model Account {
   id                  String    @id @default(cuid())
   created_at          DateTime  @default(now())
@@ -71,14 +70,8 @@ model User {
   sentNotifications     Notification[]       @relation("notificationSender")
   participants          Participant[]        @relation("participantUser")
   accounts              Account[]
-  comments              Comment[]
-  feedbacks_given       Feedback[]           @relation("FeedbackAuthor")
   liveStreams           live_streams[]
   payment_transactions  PaymentTransaction[]
-  postCommunities       PostCommunity[]
-  postLikes             PostLike[]
-  created_requests      Request[]            @relation("SeekerRequests")
-  accepted_tasks        Request[]            @relation("VolunteerTasks")
   role_users            RoleUser[]
   ucodes                Ucode[]
   user_payment_methods  UserPaymentMethod[]
@@ -99,84 +92,6 @@ model Ucode {
   user        User?     @relation(fields: [user_id], references: [id])
 
   @@map("ucodes")
-}
-
-model PostCommunity {
-  id           String     @id @default(uuid())
-  author_id    String
-  title        String?
-  content      String?
-  image_url    String?
-  location_tag String?
-  created_at   DateTime   @default(now())
-  updated_at   DateTime   @updatedAt
-  comments     Comment[]
-  user         User       @relation(fields: [author_id], references: [id])
-  likes        PostLike[]
-
-  @@map("post_communities")
-}
-
-model Comment {
-  id         String        @id @default(uuid())
-  post_id    String
-  author_id  String
-  content    String
-  created_at DateTime      @default(now())
-  parent_id  String?
-  user       User          @relation(fields: [author_id], references: [id])
-  parent     Comment?      @relation("CommentReplies", fields: [parent_id], references: [id])
-  replies    Comment[]     @relation("CommentReplies")
-  post       PostCommunity @relation(fields: [post_id], references: [id], onDelete: Cascade)
-
-  @@map("comments")
-}
-
-model PostLike {
-  id         String        @id @default(uuid())
-  post_id    String
-  user_id    String
-  created_at DateTime      @default(now())
-  post       PostCommunity @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user       User          @relation(fields: [user_id], references: [id])
-
-  @@unique([post_id, user_id])
-  @@map("post_likes")
-}
-
-model Request {
-  id                 String          @id @default(uuid())
-  title              String
-  description        String
-  category           RequestCategory
-  location           String
-  estimated_duration String?
-  urgency_level      UrgencyLevel    @default(MEDIUM)
-  skills_needed      String[]
-  status             RequestStatus   @default(PENDING)
-  seeker_id          String
-  volunteer_id       String?
-  created_at         DateTime        @default(now())
-  updated_at         DateTime        @updatedAt
-  attachments        Attachment[]    @relation("RequestAttachments")
-  feedbacks          Feedback[]
-  seeker             User            @relation("SeekerRequests", fields: [seeker_id], references: [id])
-  volunteer          User?           @relation("VolunteerTasks", fields: [volunteer_id], references: [id])
-
-  @@map("requests")
-}
-
-model Feedback {
-  id          String   @id @default(uuid())
-  comment     String?
-  request_id  String
-  user_id     String
-  created_at  DateTime @default(now())
-  rating_type Boolean?
-  request     Request  @relation(fields: [request_id], references: [id])
-  user        User     @relation("FeedbackAuthor", fields: [user_id], references: [id])
-
-  @@map("feedbacks")
 }
 
 model Conversation {
@@ -257,17 +172,17 @@ model video_calls {
 }
 
 model live_streams {
-  id             String    @id @default(uuid())
-  room_name      String    @unique
-  host_id        String
-  title          String?
-  is_active      Boolean   @default(true)
-  recording_url  String?   // Auto-record houar por S3 link ekhane thakbe
-  status         String    @default("streaming") // streaming, completed, failed
-  created_at     DateTime  @default(now())
-  ended_at       DateTime?
-  
-  host           User      @relation(fields: [host_id], references: [id])
+  id            String    @id @default(uuid())
+  room_name     String    @unique
+  host_id       String
+  title         String?
+  is_active     Boolean   @default(true)
+  recording_url String? // Auto-record houar por S3 link ekhane thakbe
+  status        String    @default("streaming") // streaming, completed, failed
+  created_at    DateTime  @default(now())
+  ended_at      DateTime?
+
+  host User @relation(fields: [host_id], references: [id])
 }
 
 model Role {
@@ -397,8 +312,6 @@ model Attachment {
   name       String?
   type       String?
   path       String?
-  request_id String
-  request    Request   @relation("RequestAttachments", fields: [request_id], references: [id], onDelete: Cascade)
   lead_id    String?
   lead       Lead?     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
 
@@ -410,8 +323,8 @@ enum UserType {
   CLIENT
   EDITOR
   MAID
-  SEEKER
-  VOLUNTEER
+  SECRETARY
+  SUP_ADMIN
 }
 
 enum RequestStatus {
@@ -442,8 +355,8 @@ enum MessageStatus {
   PENDING
 }
 
-
-// ============================================================================================
+// #####################################################################################
+// #####################################################################################
 
 enum LeadStatus {
   SCHEDULED
@@ -454,34 +367,43 @@ enum LeadStatus {
 }
 
 model Lead {
-  id             String      @id @default(uuid())
-  lead_no        String      @unique @map("lead_no")
+  id             String     @id @default(cuid())
+  lead_no        String     @unique @map("lead_no")
   address        String?
-  name           String
-  phone          String      @unique
-  notes          String?     @db.Text
-  status         LeadStatus  @default(ACTIVE)
-  scheduled_time DateTime?   @map("scheduled_time")
-  
+  name           String?
+  phone          String?
+  notes          String?    @db.Text
+  status         LeadStatus @default(SUBMITTED)
+  scheduled_time DateTime?  @map("scheduled_time")
+
   // Timestamps
-  created_at     DateTime    @default(now())
-  updated_at     DateTime    @default(now())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
 
-  // Relations
-  trade          Trade?
-  files          Attachment[]
+  // --- RELATIONS ---
+  // Lead side-e foreign key thakbe
+  trade_id String? @unique @map("trade_id") // Unique dite hobe 1:1 jonno
+  trade    Trade?  @relation(fields: [trade_id], references: [id], onDelete: Cascade)
 
-  @@map("leads")
+  files Attachment[]
+
   @@index([status])
   @@index([lead_no])
+  @@map("leads")
+}
+
+enum TradeStatus {
+  ACTIVE
+  PAUSED
 }
 
 model Trade {
-  id         String   @id @default(uuid())
-  name       String
-  lead_id    String   @unique @map("lead_id")
-  lead       Lead     @relation(fields: [lead_id], references: [id], onDelete: Cascade)
-  
+  id     String      @id @default(cuid())
+  name   String
+  status TradeStatus @default(ACTIVE)
+
+  lead Lead?
+
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
 

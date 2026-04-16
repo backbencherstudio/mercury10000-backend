@@ -12,8 +12,10 @@ import {
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { LivekitService } from '../livekit/livekit.service';
 import { NotificationRepository } from 'src/common/repository/notification/notification.repository';
+import { ApiExcludeController } from '@nestjs/swagger';
 
 @Controller('v1/video-calls')
+@ApiExcludeController()
 export class CallController {
   constructor(
     private readonly livekitService: LivekitService,

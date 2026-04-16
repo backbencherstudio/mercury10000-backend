@@ -91,7 +91,7 @@ export default () => ({
     attachment: 'attachment/',
     jobPhoto: 'job-photo/',
     postCommunity: 'post-community/',
-    requests: 'requests/',
+    leads: 'leads/',
   },
 
   defaultUser: {

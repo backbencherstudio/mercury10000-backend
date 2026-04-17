@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UserType } from '@prisma/client';
 import {
   IsEmail,
   IsEnum,
@@ -6,13 +7,12 @@ import {
   IsString,
   MinLength,
 } from 'class-validator';
-import { UserType } from '@prisma/client';
 
 export class CreateUserResDto {
   @ApiPropertyOptional({ example: 'John Doe' })
   @IsString()
   @IsOptional()
-  name?: string;
+  username?: string;
 
   @ApiProperty({ example: '019948547647' })
   @ApiProperty()
@@ -25,6 +25,21 @@ export class CreateUserResDto {
   @ApiProperty({ example: 'password123' })
   @MinLength(8, { message: 'Password should be minimum 8 characters' })
   password: string;
+
+  @ApiPropertyOptional({ example: 'Google' })
+  @IsString()
+  @IsOptional()
+  work_at_company?: string;
+
+  @ApiPropertyOptional({ example: 'New York' })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @ApiPropertyOptional({ example: 'USA' })
+  @IsString()
+  @IsOptional()
+  country?: string;
 
   @ApiPropertyOptional({
     enum: UserType,

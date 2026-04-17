@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { UserType } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 import * as QRCode from 'qrcode';
 import * as speakeasy from 'speakeasy';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
@@ -228,6 +228,9 @@ export class UserRepository {
     email,
     password,
     type,
+    work_at_company,
+    country,
+    city,
     role_id,
   }: {
     name?: string;
@@ -236,6 +239,9 @@ export class UserRepository {
     phone_number?: string;
     role_id?: string;
     type?: string;
+    work_at_company?: string;
+    country?: string;
+    city?: string;
   }) {
     try {
       // console.log('Create user data', {
@@ -281,6 +287,18 @@ export class UserRepository {
 
       if (phone_number) {
         data['phone_number'] = phone_number;
+      }
+
+      if (work_at_company) {
+        data['work_at_company'] = work_at_company;
+      }
+
+      if (country) {
+        data['country'] = country;
+      }
+
+      if (city) {
+        data['city'] = city;
       }
 
       const user = await this.prisma.user.create({

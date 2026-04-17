@@ -80,15 +80,18 @@ export class AuthController {
   @Post('register')
   async create(@Body() data: CreateUserResDto) {
     try {
-      const name = data.name;
+      const username = data.username;
       const email = data.email;
       const phone_number = data.phone_number;
       const password = data.password;
       const type = data.type;
+      const work_at_company = data.work_at_company;
+      const country = data.country;
+      const city = data.city;
 
       // console.log('Register Data', data);
 
-      if (!name) {
+      if (!username) {
         throw new HttpException('Name not provided', HttpStatus.UNAUTHORIZED);
       }
 
@@ -103,11 +106,14 @@ export class AuthController {
       }
 
       const response = await this.authService.register({
-        name: name,
+        username: username,
         phone_number: phone_number,
         email: email,
         password: password,
         type: type,
+        work_at_company: work_at_company,
+        country: country,
+        city: city,
       });
 
       return response;

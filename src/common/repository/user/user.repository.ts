@@ -222,96 +222,80 @@ export class UserRepository {
    * @param param0
    * @returns
    */
-  async createUser({
-    phone_number,
-    name,
-    email,
-    password,
-    type,
-    work_at_company,
-    country,
-    city,
-    role_id,
-  }: {
-    name?: string;
-    email: string;
-    password: string;
-    phone_number?: string;
-    role_id?: string;
-    type?: string;
-    work_at_company?: string;
-    country?: string;
-    city?: string;
-  }) {
+  async createUser(payload: any) {
     try {
-      // console.log('Create user data', {
-      //   phone_number,
-      //   name,
-      //   email,
-      //   password,
-      //   type,
-      //   role_id,
-      // });
-      const data = {};
+      const {
+        name,
+        email,
+        password,
+        phone_number,
+        type,
+        work_at_company,
+        country,
+        city,
+        role_id,
+        trades, // Expecting array of trade IDs
+        qualified_leads_fee,
+        conversion_fee,
+      } = payload;
 
-      if (name) {
-        data['name'] = name;
+      const data: any = {
+        name: name,
+        email: email,
+        username: email,
+        phone_number: phone_number,
+        type: type,
+        work_at_company: work_at_company || 'N/A',
+        country: country,
+        city: city,
+        qualified_leads_fee: qualified_leads_fee
+          ? parseFloat(qualified_leads_fee)
+          : 0,
+        conversion_fee: conversion_fee ? parseFloat(conversion_fee) : 0,
+        status: 1,
+      };
+
+      // password hashing
+      if (password) {
+        data.password = await bcrypt.hash(password, appConfig().security.salt);
       }
 
-      if (email) {
-        const userEmailExist = await this.exist({
-          field: 'email',
-          value: String(email),
+      // trade validation
+      let tradeConnection = undefined;
+      if (trades && Array.isArray(trades) && trades.length > 0) {
+        // check trade id is valid
+        const validTrades = await this.prisma.trade.findMany({
+          where: {
+            id: { in: trades },
+          },
+          select: { id: true },
         });
 
-        if (userEmailExist) {
-          return {
-            success: false,
-            message: 'Email already exist',
+        if (validTrades.length > 0) {
+          tradeConnection = {
+            connect: validTrades.map((t) => ({ id: t.id })),
           };
+        } else {
+          console.warn(
+            `[UserRepository] Provided trade IDs not found in DB: ${trades}`,
+          );
         }
-
-        data['email'] = email;
       }
 
-      if (password) {
-        data['password'] = await bcrypt.hash(
-          password,
-          appConfig().security.salt,
-        );
-      }
-
-      if (type) {
-        data['type'] = type;
-      }
-
-      if (phone_number) {
-        data['phone_number'] = phone_number;
-      }
-
-      if (work_at_company) {
-        data['work_at_company'] = work_at_company;
-      }
-
-      if (country) {
-        data['country'] = country;
-      }
-
-      if (city) {
-        data['city'] = city;
-      }
-
+      // create user
       const user = await this.prisma.user.create({
         data: {
           ...data,
+          trades: tradeConnection,
+        },
+        include: {
+          trades: true,
         },
       });
 
-      // console.log('User created', user);
-
       if (user) {
+        // attach role if role_id is provided
         if (role_id) {
-          // attach role
           await this.attachRole({
             user_id: user.id,
             role_id: role_id,
@@ -323,16 +307,19 @@ export class UserRepository {
           message: 'User created successfully',
           data: user,
         };
-      } else {
-        return {
-          success: false,
-          message: 'User creation failed',
-        };
       }
-    } catch (error) {
+
       return {
         success: false,
-        message: error.message,
+        message: 'User creation failed',
+      };
+    } catch (error) {
+      console.error('--- UserRepository Error ---');
+      console.error(error);
+
+      return {
+        success: false,
+        message: error.message || 'Internal Server Error during user creation',
       };
     }
   }

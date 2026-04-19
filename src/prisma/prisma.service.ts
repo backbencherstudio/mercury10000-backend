@@ -20,7 +20,12 @@ export class PrismaService
   constructor() {
     const datasourceUrl = appConfig().database.url;
 
-    if (!datasourceUrl) {
+    if (!datasourceUrl || datasourceUrl === 'undefined') {
+      console.error(
+        '--- ❌ DATABASE_URL is not defined or invalid! ---',
+        `Value: ${datasourceUrl}`,
+      );
+      // We still haven't called super(), so we throw here
       throw new Error('DATABASE_URL is not defined in environment variables');
     }
 
@@ -29,8 +34,9 @@ export class PrismaService
 
     super({ adapter });
 
+    this.logger.log(`Connecting to database...`);
     if (process.env.PRISMA_ENV == '1') {
-      this.logger.log('Prisma Middleware disabled');
+      this.logger.log('Prisma Middleware disabled by env');
     }
   }
 

@@ -75,65 +75,60 @@ export class AuthService {
     }
   }
   // done
-  async register({
-    username,
-    phone_number,
-    email,
-    password,
-    type,
-    work_at_company,
-    country,
-    city,
-  }: {
-    username: string;
-    phone_number: string;
-    email: string;
-    password: string;
-    type?: string;
-    work_at_company?: string;
-    country?: string;
-    city?: string;
-  }) {
+  async register(data: any) {
     try {
-      // Check if email already exist
+      // 1. Check if email already exists
       const userEmailExist = await this.userRepository.exist({
         field: 'email',
-        value: String(email),
+        value: String(data.email),
       });
 
       if (userEmailExist) {
+        console.warn(
+          `[Register] Attempt to register with existing email: ${data.email}`,
+        );
         return {
+          success: false, // consistency বজায় রাখার জন্য success: false দিন
           statusCode: 401,
           message: 'Email already exist',
         };
       }
 
-      const user = await this.userRepository.createUser({
-        name: username,
-        email: email,
-        password: password,
-        phone_number: phone_number,
-        type: type,
-        work_at_company: work_at_company,
-        country: country,
-        city: city,
+      // 2. Create User via Repository
+      console.log('[Register] Creating user with data:', {
+        ...data,
+        password: '***',
       });
 
-      if (user == null && user.success == false) {
+      const user = await this.userRepository.createUser({
+        ...data,
+        name: data.username,
+      });
+
+      // 3. Handle Repository Response
+      if (!user || user.success === false) {
+        console.error(
+          '[Register] Repository failed to create user:',
+          user?.message,
+        );
         return {
           success: false,
-          message: 'Failed to create account',
+          message: user?.message || 'Failed to create account',
         };
       }
+
+      console.log('[Register] User created successfully:', user.data?.id);
+
       return {
         success: true,
         message: 'Account created successfully',
-        data: user,
+        data: user.data,
       };
     } catch (error) {
+      console.error('[Register] Critical Error:', error);
       return {
         success: false,
-        message: error.message,
+        message: error.message || 'An unexpected error occurred',
       };
     }
   }

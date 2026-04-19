@@ -35,7 +35,6 @@ import {
   ResetPasswordDto,
   UpdateUserResDto,
   VerifyTokenDto,
-  VolunteerListResDto,
 } from 'src/modules/auth/dto/create-user-res.dto';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
 import { AuthService } from './auth.service';
@@ -71,52 +70,46 @@ export class AuthController {
   // *register user
   @ApiOkResponse({ type: CreateUserResDto })
   @ApiOperation({
-    summary: 'User register / Create',
+    summary: 'User Create',
   })
   @ApiBody({
-    description: 'User Type: (ADMIN, CLIENT, EDITOR, MAID, SEEKER, VOLUNTEER)',
+    description: 'User Type: ( USER, SECRETARY, SUP_ADMIN )',
     type: CreateUserResDto,
   })
-  @Post('register')
+@Post('register')
   async create(@Body() data: CreateUserResDto) {
     try {
-      const username = data.username;
-      const email = data.email;
-      const phone_number = data.phone_number;
-      const password = data.password;
-      const type = data.type;
-      const work_at_company = data.work_at_company;
-      const country = data.country;
-      const city = data.city;
+      const {
+        username,
+        email,
+        phone_number,
+        password,
+        type,
+        work_at_company,
+        country,
+        city,
+        trades, // Array of trade IDs or Names
+        qualified_leads_fee,
+        conversion_fee,
+      } = data;
 
-      // console.log('Register Data', data);
+      if (!username) throw new HttpException('Name not provided', HttpStatus.BAD_REQUEST);
+      if (!email) throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
+      if (!password) throw new HttpException('Password not provided', HttpStatus.BAD_REQUEST);
 
-      if (!username) {
-        throw new HttpException('Name not provided', HttpStatus.UNAUTHORIZED);
-      }
-
-      if (!email) {
-        throw new HttpException('Email not provided', HttpStatus.UNAUTHORIZED);
-      }
-      if (!password) {
-        throw new HttpException(
-          'Password not provided',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      const response = await this.authService.register({
-        username: username,
-        phone_number: phone_number,
-        email: email,
-        password: password,
-        type: type,
-        work_at_company: work_at_company,
-        country: country,
-        city: city,
+      return await this.authService.register({
+        username,
+        phone_number,
+        email,
+        password,
+        type,
+        work_at_company,
+        country,
+        city,
+        trades,
+        qualified_leads_fee,
+        conversion_fee,
       });
-
-      return response;
     } catch (error) {
       return {
         success: false,
@@ -606,10 +599,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Get all volunteers' })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOkResponse({
-    description: 'Get all volunteers',
-    type: [VolunteerListResDto],
-  })
+  // @ApiOkResponse({
+  //   description: 'Get all volunteers',
+  //   type: [VolunteerListResDto],
+  // })
   @Get('all-volunteer')
   async allVolunteer(@Req() req: any) {
     const user_id = req.user.userId;

@@ -1,10 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserType } from '@prisma/client';
 import {
+  IsArray,
   IsEmail,
   IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
+  Min,
   MinLength,
 } from 'class-validator';
 
@@ -14,15 +17,16 @@ export class CreateUserResDto {
   @IsOptional()
   username?: string;
 
-  @ApiProperty({ example: '019948547647' })
-  @ApiProperty()
+  @ApiPropertyOptional({ example: '019948547647' })
+  @IsString()
+  @IsOptional()
   phone_number?: string;
 
-  @ApiProperty({ example: 'john@example.com' })
+  @ApiProperty({ example: 'user@mercury.com' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: '123456789' })
   @MinLength(8, { message: 'Password should be minimum 8 characters' })
   password: string;
 
@@ -43,20 +47,41 @@ export class CreateUserResDto {
 
   @ApiPropertyOptional({
     enum: UserType,
-    default: UserType.SEEKER,
+    default: UserType.USER,
   })
-  @ApiProperty({ example: UserType.SEEKER })
   @IsOptional()
   @IsEnum(UserType)
   type?: UserType;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['clx123...', 'clx456...'],
+    description: 'Array of Trade IDs',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  trades?: string[];
+
+  @ApiPropertyOptional({ example: 100 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  qualified_leads_fee?: number;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  conversion_fee?: number;
 }
 
 export class LoginUserResDto {
-  @ApiProperty({ example: 'john@example.com' })
+  @ApiProperty({ example: 'user@mercury.com' })
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123' })
+  @ApiProperty({ example: '123456789' })
   @MinLength(8, { message: 'Password should be minimum 8 characters' })
   password: string;
 
@@ -126,22 +151,22 @@ export class UpdateUserResDto {
   image?: string;
 }
 
-export class VolunteerListResDto {
-  @ApiProperty({ example: 'uuid-string' })
-  id: string;
+// export class VolunteerListResDto {
+//   @ApiProperty({ example: 'uuid-string' })
+//   id: string;
 
-  @ApiProperty({ example: 'John Doe' })
-  name: string;
+//   @ApiProperty({ example: 'John Doe' })
+//   name: string;
 
-  @ApiProperty({ example: 'john@example.com' })
-  email: string;
+//   @ApiProperty({ example: 'john@example.com' })
+//   email: string;
 
-  @ApiProperty({
-    enum: UserType,
-    example: UserType.VOLUNTEER,
-  })
-  type: UserType;
+//   @ApiProperty({
+//     enum: UserType,
+//     example: UserType.VOLUNTEER,
+//   })
+//   type: UserType;
 
-  @ApiProperty({ example: '2023-10-27T10:00:00.000Z' })
-  created_at: Date;
-}
+//   @ApiProperty({ example: '2023-10-27T10:00:00.000Z' })
+//   created_at: Date;
+// }

@@ -1,0 +1,26 @@
+yarn run v1.22.22
+$ cross-env PRISMA_ENV=1 ts-node -r tsconfig-paths/register src/cmd.ts seed
+Prisma Env: 1
+Seeding started...
+(node:1392) NOTE: The AWS SDK for JavaScript (v2) has reached end-of-support.
+It will no longer receive updates or releases.
+
+Please migrate your code to use AWS SDK for JavaScript (v3).
+For more information, check the blog post at https://a.co/cUPnyil
+(Use `node --trace-warnings ...` to show where the warning was created)
+Seeding Error: PrismaClientKnownRequestError: Transaction API error: Unable to start a transaction in the given time.
+    at jt.#transformRequestError (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\core\engines\client\ClientEngine.ts:299:14)
+    at jt.transaction (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\core\engines\client\ClientEngine.ts:452:18)
+    at async Proxy._transactionWithCallback (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:773:16)
+    at async SeedCommand.seed (E:\projects\mercury10000-backend\src\command\seed.command.ts:28:7)
+    at async SeedCommand.run (E:\projects\mercury10000-backend\src\command\seed.command.ts:19:5)
+    at async Command.<anonymous> (E:\projects\mercury10000-backend\packages\nest-commander\src\command-runner.service.ts:227:16)
+    at async Command.parseAsync (E:\projects\mercury10000-backend\node_modules\commander\lib\command.js:936:5)
+    at async CommandRunnerService.run (E:\projects\mercury10000-backend\packages\nest-commander\src\command-runner.service.ts:285:5)
+    at async Function.runApplication (E:\projects\mercury10000-backend\packages\nest-commander\src\command.factory.ts:69:5)
+    at async Function.run (E:\projects\mercury10000-backend\packages\nest-commander\src\command.factory.ts:23:7) {
+  code: 'P2028',
+  meta: {},
+  clientVersion: '7.6.0'
+}
+PrismaClientKnownRequestError: Transaction API error: Unable to start a transaction in the given time.Done in 8.34s.

@@ -1,0 +1,58 @@
+yarn run v1.22.22
+$ cross-env PRISMA_ENV=1 ts-node -r tsconfig-paths/register src/cmd.ts seed
+Prisma Env: 1
+Seeding started...
+Seeding Roles...
+(node:18308) NOTE: The AWS SDK for JavaScript (v2) has reached end-of-support.
+It will no longer receive updates or releases.
+
+Please migrate your code to use AWS SDK for JavaScript (v3).
+For more information, check the blog post at https://a.co/cUPnyil
+(Use `node --trace-warnings ...` to show where the warning was created)
+Seeding Error: PrismaClientKnownRequestError: 
+Invalid `this.prisma.role.createMany()` invocation in
+E:\projects\mercury10000-backend\src\command\seed.command.ts:43:28
+
+  40 //---- Role Section ----
+  41 async roleSeed() {
+  42   console.log('Seeding Roles...');
+→ 43   await this.prisma.role.createMany(
+Can't reach database server at base
+    at Gr.handleRequestError (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\RequestHandler.ts:237:13)
+    at Gr.handleAndLogRequestError (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\RequestHandler.ts:183:12)
+    at Gr.request (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\RequestHandler.ts:152:12)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async a (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\getPrismaClient.ts:938:24)
+    at async SeedCommand.roleSeed (E:\projects\mercury10000-backend\src\command\seed.command.ts:43:5)
+    at async SeedCommand.seed (E:\projects\mercury10000-backend\src\command\seed.command.ts:28:7)
+    at async SeedCommand.run (E:\projects\mercury10000-backend\src\command\seed.command.ts:19:5)
+    at async Command.<anonymous> (E:\projects\mercury10000-backend\packages\nest-commander\src\command-runner.service.ts:227:16)
+    at async Command.parseAsync (E:\projects\mercury10000-backend\node_modules\commander\lib\command.js:936:5) {
+  code: 'P1001',
+  meta: {
+    modelName: 'Role',
+    driverAdapterError: DriverAdapterError: DatabaseNotReachable
+        at PrismaPgAdapter.onError (E:\projects\mercury10000-backend\node_modules\@prisma\adapter-pg\dist\index.js:678:11)
+        at E:\projects\mercury10000-backend\node_modules\@prisma\adapter-pg\dist\index.js:720:68
+        at processTicksAndRejections (node:internal/process/task_queues:103:5)
+        at async PrismaPgAdapter.startTransaction (E:\projects\mercury10000-backend\node_modules\@prisma\adapter-pg\dist\index.js:720:18)
+        at async Vt.#r (E:\projects\mercury10000-backend\node_modules\@prisma\client-engine-runtime\src\transaction-manager\transaction-manager.ts:163:31)
+        at async Vt.startInternalTransaction (E:\projects\mercury10000-backend\node_modules\@prisma\client-engine-runtime\src\transaction-manager\transaction-manager.ts:96:12)
+        at async e.interpretNode (E:\projects\mercury10000-backend\node_modules\@prisma\client-engine-runtime\src\interpreter\query-interpreter.ts:259:33)
+        at async e.run (E:\projects\mercury10000-backend\node_modules\@prisma\client-engine-runtime\src\interpreter\query-interpreter.ts:94:23)
+        at async execute (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\core\engines\client\LocalExecutor.ts:81:12)
+        at async jt.request (E:\projects\mercury10000-backend\node_modules\@prisma\client\src\runtime\core\engines\client\ClientEngine.ts:498:22) {
+      cause: [Object]
+    }
+  },
+  clientVersion: '7.6.0'
+}
+PrismaClientKnownRequestError: 
+Invalid `this.prisma.role.createMany()` invocation in
+E:\projects\mercury10000-backend\src\command\seed.command.ts:43:28
+
+  40 //---- Role Section ----
+  41 async roleSeed() {
+  42   console.log('Seeding Roles...');
+→ 43   await this.prisma.role.createMany(
+Can't reach database server at baseDone in 8.15s.

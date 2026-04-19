@@ -1,0 +1,19 @@
+yarn run v1.22.22
+$ cross-env PRISMA_ENV=1 ts-node -r tsconfig-paths/register src/cmd.ts seed
+Prisma Env: 1
+Seeding started...
+Seeding Roles...
+(node:35800) NOTE: The AWS SDK for JavaScript (v2) has reached end-of-support.
+It will no longer receive updates or releases.
+
+Please migrate your code to use AWS SDK for JavaScript (v3).
+For more information, check the blog post at https://a.co/cUPnyil
+(Use `node --trace-warnings ...` to show where the warning was created)
+Seeding Permissions...
+Seeding Users...
+User admin@mercury.com already exists, skipping.
+User secretary@mercury.com already exists, skipping.
+User user@mercury.com already exists, skipping.
+Mapping Permissions to Roles...
+Seeding done successfully.
+Done in 16.33s.

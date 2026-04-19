@@ -12,7 +12,8 @@
     "rootDir": ".",
     "baseUrl": "./",
     "paths": {
-      "@prisma/client": ["node_modules/.prisma/client"]
+      "@prisma/client": ["node_modules/.prisma/client"],
+      "src/*": ["src/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

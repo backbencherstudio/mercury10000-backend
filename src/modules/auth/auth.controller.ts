@@ -1,11 +1,15 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Get,
   HttpException,
   HttpStatus,
+  Param,
+  ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -21,6 +25,7 @@ import {
   ApiExcludeEndpoint,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -76,7 +81,7 @@ export class AuthController {
     description: 'User Type: ( USER, SECRETARY, SUP_ADMIN )',
     type: CreateUserResDto,
   })
-@Post('register')
+  @Post('register')
   async create(@Body() data: CreateUserResDto) {
     try {
       const {
@@ -93,9 +98,15 @@ export class AuthController {
         conversion_fee,
       } = data;
 
-      if (!username) throw new HttpException('Name not provided', HttpStatus.BAD_REQUEST);
-      if (!email) throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
-      if (!password) throw new HttpException('Password not provided', HttpStatus.BAD_REQUEST);
+      if (!username)
+        throw new HttpException('Name not provided', HttpStatus.BAD_REQUEST);
+      if (!email)
+        throw new HttpException('Email not provided', HttpStatus.BAD_REQUEST);
+      if (!password)
+        throw new HttpException(
+          'Password not provided',
+          HttpStatus.BAD_REQUEST,
+        );
 
       return await this.authService.register({
         username,
@@ -158,6 +169,54 @@ export class AuthController {
     }
   }
 
+  //get signle user
+  @Get('single_user/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiAllAuth()
+  @ApiOperation({ summary: 'Get single user' })
+  @ApiQuery({ name: 'id', required: true, type: String, example: '1' })
+  @ApiResponse({
+    status: 200,
+    description: 'Single user fetched successfully',
+    // type: ,
+  })
+  async getSingleUser(@Param('id') id: string) {
+    try {
+      return await this.authService.getSingleUser(id);
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch single user',
+      };
+    }
+  }
+
+  // get all users with pagination
+  @Get('all_users')
+  @UseGuards(JwtAuthGuard)
+  @ApiAllAuth()
+  @ApiOperation({ summary: 'Get all users' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'All users fetched successfully',
+    // type: ,
+  })
+  async getAllUsers(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ) {
+    try {
+      return await this.authService.getAllUsers({ page, limit });
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch all users',
+      };
+    }
+  }
+
   // *update user
   // @ApiExcludeEndpoint()
   @UseGuards(JwtAuthGuard)
@@ -195,6 +254,7 @@ export class AuthController {
   }
 
   // *forgot password
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Forgot password' })
   @ApiBody({
     type: ForgotPasswordDto,
@@ -216,6 +276,7 @@ export class AuthController {
   }
 
   // *verify email
+  @ApiExcludeEndpoint()
   @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Verify email' })
   @Post('verify-email')
@@ -261,7 +322,7 @@ export class AuthController {
   }
 
   // *reset password if user forget the password
-  // @ApiExcludeEndpoint()
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Reset password' })
   @ApiBody({
     type: ResetPasswordDto,
@@ -319,6 +380,7 @@ export class AuthController {
   }
 
   // *veify token
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Verify reset password token' })
   @ApiBody({
     type: VerifyTokenDto,
@@ -351,6 +413,7 @@ export class AuthController {
   }
 
   // change password if user want to change the password
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Change password' })
   @ApiBody({
     type: ChangePasswordDto,
@@ -597,6 +660,7 @@ export class AuthController {
   // --------- end 2FA ---------
 
   @ApiOperation({ summary: 'Get all volunteers' })
+  @ApiExcludeEndpoint()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   // @ApiOkResponse({

@@ -132,6 +132,83 @@ export class AuthService {
       };
     }
   }
+
+  // get single user
+  async getSingleUser(id: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          phone_number: true,
+          trades: true,
+          email: true,
+          city: true,
+          country: true,
+          conversion_fee: true,
+          qualified_leads_fee: true,
+          type: true,
+        },
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+
+      if (user) {
+        return {
+          success: true,
+          message: 'User fetched successfully',
+          data: user,
+        };
+      } else {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  // get all users with pagination
+  async getAllUsers({ page, limit }: { page: number; limit: number }) {
+    try {
+      const users = await this.prisma.user.findMany({
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          name: true,
+          phone_number: true,
+          trades: true,
+          email: true,
+          city: true,
+          country: true,
+          type: true,
+        },
+      });
+      return {
+        success: true,
+        message: 'All users fetched successfully',
+        data: users,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
   // done
   async login({
     email,

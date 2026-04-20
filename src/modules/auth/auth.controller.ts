@@ -39,6 +39,7 @@ import {
   LoginUserResDto,
   ResetPasswordDto,
   UpdateUserResDto,
+  UserSingleResDto,
   VerifyTokenDto,
 } from 'src/modules/auth/dto/create-user-res.dto';
 import { LocalAuthGuard } from 'src/modules/auth/guards/local-auth.guard';
@@ -178,7 +179,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'Single user fetched successfully',
-    // type: ,
+    type: UserSingleResDto,
   })
   async getSingleUser(@Param('id') id: string) {
     try {
@@ -201,7 +202,7 @@ export class AuthController {
   @ApiResponse({
     status: 200,
     description: 'All users fetched successfully',
-    // type: ,
+    type: UserSingleResDto,
   })
   async getAllUsers(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,

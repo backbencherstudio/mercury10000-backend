@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
   MinLength,
 } from 'class-validator';
@@ -85,9 +86,63 @@ export class LoginUserResDto {
   @MinLength(8, { message: 'Password should be minimum 8 characters' })
   password: string;
 
-  @ApiProperty({ example: 'fcm-token' })
+  // @ApiProperty({ example: 'fcm-token' })
+  // @IsString()
+  // fcm_token: string;
+}
+
+export class UserSingleResDto {
+  @ApiProperty({ 
+    example: '550e8400-e29b-41d4-a716-446655440000', 
+    description: 'Unique ID of the user' 
+  })
+  @IsUUID()
+  id: string;
+
+  @ApiProperty({ example: 'MD Tajul Islam', description: 'Full name of the user' })
   @IsString()
-  fcm_token: string;
+  name: string;
+
+  @ApiProperty({ example: 'tajul@softvence.com', description: 'Email address' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '+8801302442863', description: 'Contact phone number' })
+  @IsString()
+  phone_number: string;
+
+  @ApiProperty({ 
+    example: ['Plumbing', 'Electrical'], 
+    description: 'List of trades or specialties',
+    isArray: true 
+  })
+  @IsArray()
+  @IsString({ each: true })
+  trades: string[];
+
+  @ApiProperty({ example: 'Dhaka', description: 'City of residence' })
+  @IsString()
+  city: string;
+
+  @ApiProperty({ example: 'Bangladesh', description: 'Country of residence' })
+  @IsString()
+  country: string;
+
+  @ApiProperty({ example: 15.50, description: 'Fee charged for conversion' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  conversion_fee: number;
+
+  @ApiProperty({ example: 50.00, description: 'Fee for qualified leads' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  qualified_leads_fee: number;
+
+  @ApiProperty({ 
+    example: 'USER', 
+    enum: UserType, 
+    description: 'Type of user account' 
+  })
+  @IsEnum(UserType)
+  type: string;
 }
 export class ForgotPasswordDto {
   @ApiProperty({ example: 'john@example.com' })

@@ -5,7 +5,6 @@ import { JwtService } from '@nestjs/jwt';
 import Redis from 'ioredis';
 
 //internal imports
-import { StringHelper } from '../../common/helper/string.helper';
 import { TajulStorage } from '../../common/lib/Disk/TajulStorage';
 import { UcodeRepository } from '../../common/repository/ucode/ucode.repository';
 import { UserRepository } from '../../common/repository/user/user.repository';
@@ -279,17 +278,39 @@ export class AuthService {
 
   // update user
   async updateUser(
-    userId: string,
+    id: string,
+    requestingUserId: string, // Requesting User ID (JWT payload)
     dto: UpdateUserDto,
-    image?: Express.Multer.File,
   ) {
     try {
-      // 1. User fetch kora (Checking if exists)
-      const user = await this.prisma.user.findUnique({ where: { id: userId } });
-      if (!user) return { success: false, message: 'User not found' };
+      // 1. Requesting User (Auth User) fetch kora tar type check korar jonno
+      const authUser = await this.prisma.user.findUnique({
+        where: { id: requestingUserId },
+        select: { type: true }, // Performance optimized: shudhu type-ta nilam
+      });
 
-      // 2. Phone unique check (Jodi phone change hoy)
-      if (dto.phone_number && dto.phone_number !== user.phone_number) {
+      if (!authUser) {
+        return { success: false, message: 'Authenticated user not found' };
+      }
+
+      const isAdmin = authUser.type === 'SUP_ADMIN';
+      const isSelf = id === requestingUserId;
+
+      if (!isAdmin && !isSelf) {
+        return {
+          success: false,
+          message:
+            'Unauthorized: You do not have permission to update this profile',
+        };
+      }
+
+      // 3. Target User fetch kora (Checking if target exists)
+      const targetUser = await this.prisma.user.findUnique({ where: { id } });
+      if (!targetUser)
+        return { success: false, message: 'Target user not found' };
+
+      // 4. Phone unique check (Jodi phone change hoy)
+      if (dto.phone_number && dto.phone_number !== targetUser.phone_number) {
         const exists = await this.prisma.user.findFirst({
           where: { phone_number: dto.phone_number },
         });
@@ -297,29 +318,11 @@ export class AuthService {
           return { success: false, message: 'Phone number already exists' };
       }
 
-      // 3. Image Handle kora
-      let avatarName = user.avatar;
-      if (image) {
-        // Old image delete (jodi thake)
-        if (user.avatar)
-          await TajulStorage.delete(
-            `${appConfig().storageUrl.avatar}/${user.avatar}`,
-          );
-
-        // New image upload
-        avatarName = `${StringHelper.randomString()}_${image.originalname}`;
-        await TajulStorage.put(
-          `${appConfig().storageUrl.avatar}/${avatarName}`,
-          image.buffer,
-        );
-      }
-
-      // 4. Final Update
+      // 6. Final Update with Prisma snack_case mapping
       await this.prisma.user.update({
-        where: { id: userId },
+        where: { id },
         data: {
           ...dto,
-          avatar: avatarName,
           updated_at: new Date(),
         },
       });

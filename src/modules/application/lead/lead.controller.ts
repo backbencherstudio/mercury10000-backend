@@ -6,7 +6,9 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Req,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
@@ -18,10 +20,15 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Request } from 'express';
 import { CreateLeadResDto } from 'src/modules/application/lead/dto/res-lead.dto';
+import { ApiAllAuth } from 'src/modules/auth/decorators/get-user.decorator';
+import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { LeadService } from './lead.service';
 
 @ApiTags('Leads')
+@ApiAllAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('leads')
 export class LeadController {
   constructor(private readonly leadService: LeadService) {}
@@ -40,9 +47,12 @@ export class LeadController {
   })
   async create(
     @Body() dto: CreateLeadResDto,
+    @Req() req: Request,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.leadService.createLead(dto, files);
+    const userId = req.user.userId;
+    console.log(userId);
+    return this.leadService.createLead(dto, files, userId);
   }
 
   @Get('all')
@@ -57,7 +67,8 @@ export class LeadController {
   async getLeads(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+    @Req() req: Request,
   ) {
-    return await this.leadService.getAllLeads({ page, limit });
+    return await this.leadService.getAllLeads({ page, limit }, req.user.userId);
   }
 }

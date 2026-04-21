@@ -231,20 +231,15 @@ export class AuthController {
     description: 'User updated successfully',
     type: UpdateUserResDto,
   })
-  @Patch('update')
-  @UseInterceptors(
-    FileInterceptor('image', {
-      storage: memoryStorage(),
-    }),
-  )
+  @Patch('update/:id')
   async updateUser(
     @Req() req: Request,
+    @Param('id') id: string,
     @Body() data: UpdateUserDto,
-    @UploadedFile() image: Express.Multer.File,
   ) {
     try {
       const user_id = req.user.userId;
-      const response = await this.authService.updateUser(user_id, data, image);
+      const response = await this.authService.updateUser(id, user_id, data);
       return response;
     } catch (error) {
       return {

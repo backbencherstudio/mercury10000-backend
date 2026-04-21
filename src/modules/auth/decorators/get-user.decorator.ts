@@ -1,4 +1,8 @@
-import { applyDecorators, createParamDecorator, ExecutionContext } from '@nestjs/common';
+import {
+  applyDecorators,
+  createParamDecorator,
+  ExecutionContext,
+} from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 
 export const GetUser = createParamDecorator(

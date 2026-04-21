@@ -92,14 +92,17 @@ export class LoginUserResDto {
 }
 
 export class UserSingleResDto {
-  @ApiProperty({ 
-    example: '550e8400-e29b-41d4-a716-446655440000', 
-    description: 'Unique ID of the user' 
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'Unique ID of the user',
   })
   @IsUUID()
   id: string;
 
-  @ApiProperty({ example: 'MD Tajul Islam', description: 'Full name of the user' })
+  @ApiProperty({
+    example: 'MD Tajul Islam',
+    description: 'Full name of the user',
+  })
   @IsString()
   name: string;
 
@@ -107,14 +110,17 @@ export class UserSingleResDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: '+8801302442863', description: 'Contact phone number' })
+  @ApiProperty({
+    example: '+8801302442863',
+    description: 'Contact phone number',
+  })
   @IsString()
   phone_number: string;
 
-  @ApiProperty({ 
-    example: ['Plumbing', 'Electrical'], 
+  @ApiProperty({
+    example: ['Plumbing', 'Electrical'],
     description: 'List of trades or specialties',
-    isArray: true 
+    isArray: true,
   })
   @IsArray()
   @IsString({ each: true })
@@ -128,18 +134,18 @@ export class UserSingleResDto {
   @IsString()
   country: string;
 
-  @ApiProperty({ example: 15.50, description: 'Fee charged for conversion' })
+  @ApiProperty({ example: 15.5, description: 'Fee charged for conversion' })
   @IsNumber({ maxDecimalPlaces: 2 })
   conversion_fee: number;
 
-  @ApiProperty({ example: 50.00, description: 'Fee for qualified leads' })
+  @ApiProperty({ example: 50.0, description: 'Fee for qualified leads' })
   @IsNumber({ maxDecimalPlaces: 2 })
   qualified_leads_fee: number;
 
-  @ApiProperty({ 
-    example: 'USER', 
-    enum: UserType, 
-    description: 'Type of user account' 
+  @ApiProperty({
+    example: 'USER',
+    enum: UserType,
+    description: 'Type of user account',
   })
   @IsEnum(UserType)
   type: string;
@@ -190,20 +196,67 @@ export class ResetPasswordDto {
 
 export class UpdateUserResDto {
   @ApiPropertyOptional({ example: 'John Doe' })
+  @IsString()
   @IsOptional()
-  name?: string;
+  username?: string;
 
-  @ApiPropertyOptional({ example: 'John' })
+  @ApiPropertyOptional({ example: '019948547647' })
+  @IsString()
   @IsOptional()
   phone_number?: string;
 
+  @ApiProperty({ example: 'user@mercury.com' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: '123456789' })
+  @MinLength(8, { message: 'Password should be minimum 8 characters' })
+  password: string;
+
+  @ApiPropertyOptional({ example: 'Google' })
+  @IsString()
+  @IsOptional()
+  work_at_company?: string;
+
+  @ApiPropertyOptional({ example: 'New York' })
+  @IsString()
+  @IsOptional()
+  city?: string;
+
+  @ApiPropertyOptional({ example: 'USA' })
+  @IsString()
+  @IsOptional()
+  country?: string;
+
   @ApiPropertyOptional({
-    example: 'image.jpg',
-    type: 'string',
-    format: 'binary',
+    enum: UserType,
+    default: UserType.USER,
   })
   @IsOptional()
-  image?: string;
+  @IsEnum(UserType)
+  type?: UserType;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['clx123...', 'clx456...'],
+    description: 'Array of Trade IDs',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  trades?: string[];
+
+  @ApiPropertyOptional({ example: 100 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  qualified_leads_fee?: number;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  conversion_fee?: number;
 }
 
 // export class VolunteerListResDto {

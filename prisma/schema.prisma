@@ -83,6 +83,7 @@ model User {
   ucodes                Ucode[]
   user_payment_methods  UserPaymentMethod[]
   trades                Trade[]
+  leads                 Lead[]
 
   @@map("users")
 }
@@ -391,10 +392,11 @@ model Lead {
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
 
-  // --- RELATIONS ---
   // Lead side-e foreign key thakbe
-  trade_id String? @unique @map("trade_id") // Unique dite hobe 1:1 jonno
+  trade_id String? @unique @map("trade_id")
   trade    Trade?  @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+  user_id  String? @map("user_id")
+  user     User?   @relation(fields: [user_id], references: [id])
 
   files Attachment[]
 

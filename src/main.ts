@@ -73,7 +73,6 @@ async function bootstrap() {
     .setDescription(`${process.env.APP_NAME} API Docs`)
     .setVersion('1.0')
     .addTag(`${process.env.APP_NAME}`)
-    // Security definitions
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
       'user_token',
@@ -86,24 +85,17 @@ async function bootstrap() {
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
       'secretery_token',
     )
-    /** * IMPORTANT: GLOBAL SECURITY REQUIREMENT
-     * Eta use korle apnar prottekta API end-point e bar bar @ApiBearerAuth() likhte hobe na.
-     * Swagger UI automatic lock icon dekhabe ebong apni authorize korle token pathabe.
-     */
-    .addSecurityRequirements('user_token')
-    .addSecurityRequirements('admin_token')
-    .addSecurityRequirements('secretery_token')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
-      persistAuthorization: true,
+      persistAuthorization: true, // ✅ এটা টোকেনকে localStorage এ সেভ রাখে
       defaultModelsExpandDepth: -1,
       displayRequestDuration: true,
 
-      // Auto authorization after login
+      // Auto authorization logic update
       responseInterceptor: (response) => {
         try {
           if (
@@ -112,7 +104,7 @@ async function bootstrap() {
           ) {
             const data = response.obj || JSON.parse(response.data);
             const token = data?.authorization?.access_token;
-            const role = data?.type; // role matching logic
+            const role = data?.type?.toLowerCase(); // Standardize role case
 
             if (token) {
               const authKey =
@@ -134,8 +126,20 @@ async function bootstrap() {
                   },
                   value: token,
                 };
+
+                // Swagger UI এর ইন্টারনাল মেথড কল করে অথোরাইজ করা
                 ui.authActions.authorize(authObj);
-                console.log(`✅ Auto-authorized as ${authKey}`);
+
+                // ✅ localStorage এ ম্যানুয়ালি সেভ করো যাতে reload এ টোকেন থাকে
+                try {
+                  const existing = JSON.parse(localStorage.getItem('authorized') || '{}');
+                  existing[authKey] = authObj[authKey];
+                  localStorage.setItem('authorized', JSON.stringify(existing));
+                } catch (e) {
+                  console.error('Failed to persist token:', e);
+                }
+
+                console.log(`✅ Authorized as ${authKey}`);
               }
             }
           }

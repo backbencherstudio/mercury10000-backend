@@ -3,7 +3,9 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -21,7 +23,14 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { CreateLeadResDto } from 'src/modules/application/lead/dto/res-lead.dto';
+import {
+  CreateLeadResDto,
+  GetLeadMeetingDetailsDto,
+  GetLeadsQueryDto,
+  GetLeadsResponseDto,
+  UpdateLeadScheduleDto,
+  UpdateLeadStatusDto,
+} from 'src/modules/application/lead/dto/res-lead.dto';
 import { ApiAllAuth } from 'src/modules/auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { LeadService } from './lead.service';
@@ -48,7 +57,7 @@ export class LeadController {
   async create(
     @Body() dto: CreateLeadResDto,
     @Req() req: Request,
-    @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
     const userId = req.user.userId;
     console.log(userId);
@@ -67,8 +76,98 @@ export class LeadController {
   async getLeads(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+    @Query() query: GetLeadsQueryDto,
     @Req() req: Request,
   ) {
-    return await this.leadService.getAllLeads({ page, limit }, req.user.userId);
+    return await this.leadService.getAllLeads(query, req.user.userId);
+  }
+
+  @Get('in-process')
+  @ApiOperation({
+    summary: 'Get all leads in process - Sup Admin',
+    description:
+      'Fetches leads that are currently in process (SCHEDULED, ACTIVE, etc.). Filters out "SUBMITTED" status by default.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Leads fetched successfully',
+    type: GetLeadsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getInProcessLeads(@Query() query: GetLeadsQueryDto, @Req() req: any) {
+    const userId = req.user.userId;
+    return await this.leadService.getAllLeadsInProcess(query, userId);
+  }
+
+  // Single Lead Get API
+  @Get(':id')
+  @ApiOperation({ summary: 'Get Lead by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lead fetched successfully',
+    type: CreateLeadResDto,
+  })
+  async getLeadById(@Param('id') id: string) {
+    return await this.leadService.findOne(id);
+  }
+
+  // Lead Schedule Time Update API
+  @Patch(':id/schedule')
+  @ApiOperation({ summary: 'Update Lead Schedule Time by Sup Admin' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lead schedule time updated successfully',
+    type: UpdateLeadScheduleDto,
+  })
+  @ApiBody({
+    type: UpdateLeadScheduleDto,
+  })
+  async updateSchedule(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Body() updateLeadScheduleDto: UpdateLeadScheduleDto,
+  ) {
+    const userId = req.user.userId;
+    return await this.leadService.setScheduleTime(
+      id,
+      userId,
+      updateLeadScheduleDto,
+    );
+  }
+
+  // Lead Status Update API
+  @Patch(':id/status')
+  @ApiOperation({ summary: 'Update Lead Status by Sup Admin' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lead status updated successfully',
+    type: UpdateLeadStatusDto,
+  })
+  @ApiBody({
+    type: UpdateLeadStatusDto,
+  })
+  async updateLeadStatus(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Body() updateLeadStatusDto: UpdateLeadStatusDto,
+  ) {
+    const userId = req.user.userId;
+    return await this.leadService.updateLeadStatus(
+      id,
+      userId,
+      updateLeadStatusDto,
+    );
+  }
+
+  @Get(':id/meeting-details')
+  @ApiOperation({ summary: 'Get Lead Meeting Details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lead meeting details fetched successfully',
+    type: GetLeadMeetingDetailsDto,
+  })
+  async getLeadMeetingDetails(@Param('id') id: string) {
+    return await this.leadService.getLeadMeetingDetails(id);
   }
 }

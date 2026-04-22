@@ -191,3 +191,28 @@ export class GetLeadMeetingDetailsDto {
   @ApiProperty({ example: 'SCHEDULED' })
   status: string;
 }
+
+export class GetLeadCountDto {
+  @ApiProperty({ example: 'cmo8gpo3d0001m4tzrfhi5tqq' })
+  user_id: string;
+}
+
+export class GetLeadCountResponseDto {
+  @ApiProperty({ example: true })
+  success: boolean;
+  @ApiProperty({ example: 'Lead statistics fetched successfully' })
+  message: string;
+  @ApiProperty({
+    type: 'object',
+    properties: {
+      submitted: { type: 'number', example: 10 },
+      quality_leads: { type: 'number', example: 10 },
+      conversions: { type: 'number', example: 10 },
+    },
+  })
+  data: {
+    submitted: number;
+    quality_leads: number;
+    conversions: number;
+  };
+}

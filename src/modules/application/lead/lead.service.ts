@@ -353,36 +353,76 @@ export class LeadService {
     };
   }
 
-async getLeadMeetingDetails(id: string) {
-  const lead = await this.prisma.lead.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      address: true,
-      scheduled_time: true,
-      status: true,
-    },
-  });
+  async getLeadMeetingDetails(id: string) {
+    const lead = await this.prisma.lead.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        scheduled_time: true,
+        status: true,
+      },
+    });
 
-  if (!lead) {
-    throw new NotFoundException(`Lead with ID ${id} not found`);
+    if (!lead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+
+    if (!lead.scheduled_time) {
+      throw new BadRequestException('No meeting scheduled for this lead.');
+    }
+
+    return {
+      success: true,
+      message: 'Meeting details fetched successfully',
+      data: {
+        id: lead.id,
+        customer_name: lead.name,
+        address: lead.address,
+        scheduled_time: lead.scheduled_time,
+        status: lead.status,
+      },
+    };
   }
 
-  if (!lead.scheduled_time) {
-    throw new BadRequestException('No meeting scheduled for this lead.');
-  }
+  async getLeadStatusStats(userId: string, user_id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { type: true },
+    });
 
-  return {
-    success: true,
-    message: 'Meeting details fetched successfully',
-    data: {
-      id: lead.id,
-      customer_name: lead.name,
-      address: lead.address,
-      scheduled_time: lead.scheduled_time,
-      status: lead.status,
-    },
-  };
-}
+    if (!user) throw new NotFoundException('User not found');
+
+    const [submittedCount, activeCount, scheduledCount] = await Promise.all([
+      this.prisma.lead.count({
+        where: {
+          ...(user_id ? { user_id: user_id } : {}),
+          status: 'SUBMITTED',
+        },
+      }),
+      this.prisma.lead.count({
+        where: {
+          ...(user_id ? { user_id: user_id } : {}),
+          status: 'ACTIVE',
+        },
+      }),
+      this.prisma.lead.count({
+        where: {
+          ...(user_id ? { user_id: user_id } : {}),
+          status: 'SCHEDULED',
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      message: 'Lead statistics fetched successfully',
+      data: {
+        submitted: submittedCount,
+        quality_leads: activeCount,
+        conversions: scheduledCount,
+      },
+    };
+  }
 }

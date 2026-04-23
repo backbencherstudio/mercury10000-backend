@@ -216,3 +216,47 @@ export class GetLeadCountResponseDto {
     conversions: number;
   };
 }
+
+
+
+
+class ActivityItemDto {
+  @ApiProperty({ example: 'cmo8gpo3d0001m4tzrfhi5tqq' })
+  id: string;
+
+  @ApiProperty({ example: '123 Main St, Los Angeles' })
+  address: string;
+
+  @ApiProperty({ example: '2026-04-22T09:36:36.716Z' })
+  created_at: Date;
+}
+
+class ActivityCategoryDto {
+  @ApiProperty({ example: 6 })
+  count: number;
+
+  @ApiProperty({ type: [ActivityItemDto] })
+  items: ActivityItemDto[];
+}
+
+class ActivityDataDto {
+  @ApiProperty({ type: ActivityCategoryDto })
+  submitted: ActivityCategoryDto;
+
+  @ApiProperty({ type: ActivityCategoryDto })
+  qualified: ActivityCategoryDto;
+
+  @ApiProperty({ type: ActivityCategoryDto })
+  conversions: ActivityCategoryDto;
+}
+
+export class GetLeadActivityResponseDto {
+  @ApiProperty({ example: true })
+  success: boolean;
+
+  @ApiProperty({ example: 'Lead activity fetched successfully' })
+  message: string;
+
+  @ApiProperty({ type: ActivityDataDto })
+  data: ActivityDataDto;
+}

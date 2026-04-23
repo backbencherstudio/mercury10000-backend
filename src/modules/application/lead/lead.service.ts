@@ -261,16 +261,16 @@ export class LeadService {
       },
     });
 
+    if (!lead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+
     // Mapping through each lead to transform file paths
     const formattedLeads = lead.files.map((file) => ({
       ...file,
       // Generating full URL for each attachment
       path: TajulStorage.url(`${appConfig().storageUrl.leads}${file.path}`),
     }));
-
-    if (!lead) {
-      throw new NotFoundException(`Lead with ID ${id} not found`);
-    }
 
     return {
       success: true,
@@ -422,6 +422,55 @@ export class LeadService {
         submitted: submittedCount,
         quality_leads: activeCount,
         conversions: scheduledCount,
+      },
+    };
+  }
+
+  async getUserLeadActivity(userId: string) {
+    // user exists check
+    const userExists = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!userExists) throw new NotFoundException('User not found');
+
+    // get leads by status
+    const [submittedLeads, qualifiedLeads, convertedLeads] = await Promise.all([
+      // Total Lead Submitted (SUBMITTED status)
+      this.prisma.lead.findMany({
+        where: { user_id: userId, status: 'SUBMITTED' },
+        select: { id: true, address: true, created_at: true },
+        orderBy: { created_at: 'desc' },
+      }),
+      // Qualified Leads
+      this.prisma.lead.findMany({
+        where: { user_id: userId, status: 'ACTIVE' },
+        select: { id: true, address: true, created_at: true },
+        orderBy: { created_at: 'desc' },
+      }),
+      // Conversions
+      this.prisma.lead.findMany({
+        where: { user_id: userId, status: 'SCHEDULED' },
+        select: { id: true, address: true, created_at: true },
+        orderBy: { created_at: 'desc' },
+      }),
+    ]);
+
+    return {
+      success: true,
+      message: 'Lead activity fetched successfully',
+      data: {
+        submitted: {
+          count: submittedLeads.length,
+          items: submittedLeads,
+        },
+        qualified: {
+          count: qualifiedLeads.length,
+          items: qualifiedLeads,
+        },
+        conversions: {
+          count: convertedLeads.length,
+          items: convertedLeads,
+        },
       },
     };
   }

@@ -25,7 +25,7 @@ import {
 import { Request } from 'express';
 import {
   CreateLeadResDto,
-  GetLeadCountDto,
+  GetLeadActivityResponseDto,
   GetLeadMeetingDetailsDto,
   GetLeadsQueryDto,
   GetLeadsResponseDto,
@@ -99,6 +99,23 @@ export class LeadController {
   async getInProcessLeads(@Query() query: GetLeadsQueryDto, @Req() req: any) {
     const userId = req.user.userId;
     return await this.leadService.getAllLeadsInProcess(query, userId);
+  }
+
+
+    @Get('lead-activity')
+  @ApiOperation({
+    summary: 'Get lead activity overview',
+    description:
+      'Returns counts and lists for Submitted, Qualified, and Converted leads for the logged-in user.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Success',
+    type: GetLeadActivityResponseDto,
+  })
+  async getLeadActivity(@Req() req: any) {
+    const userId = req.user.userId;
+    return await this.leadService.getUserLeadActivity(userId);
   }
 
   // Single Lead Get API
@@ -175,13 +192,13 @@ export class LeadController {
   @Get('lead-count/:user_id')
   @ApiOperation({
     summary: 'Get Lead Status Statistics',
-    description: 'Returns count of leads in each status (SUBMITTED, ACTIVE, etc.)',
+    description:
+      'Returns count of leads in each status (SUBMITTED, ACTIVE, etc.)',
   })
-  async getLeadStatusStats(
-    @Req() req: any,
-    @Param('user_id') user_id: string,
-  ) {
+  async getLeadStatusStats(@Req() req: any, @Param('user_id') user_id: string) {
     const userId = req.user.userId;
     return await this.leadService.getLeadStatusStats(userId, user_id);
   }
+
+
 }

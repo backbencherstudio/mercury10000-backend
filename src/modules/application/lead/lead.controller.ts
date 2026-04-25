@@ -29,6 +29,8 @@ import {
   GetLeadMeetingDetailsDto,
   GetLeadsQueryDto,
   GetLeadsResponseDto,
+  LeadActivityQueryDto,
+  LeadActivityResponseDto,
   UpdateLeadScheduleDto,
   UpdateLeadStatusDto,
 } from 'src/modules/application/lead/dto/res-lead.dto';
@@ -117,6 +119,14 @@ export class LeadController {
     const userId = req.user.userId;
     return await this.leadService.getUserLeadActivity(userId);
   }
+
+  @Get('dashboard/submission-activity')
+@ApiOperation({ summary: 'Get lead submission activity for chart' })
+@ApiResponse({ status: 200, type: LeadActivityResponseDto })
+async getSubmissionActivity(@Query() query: LeadActivityQueryDto) {
+  const year = query.year || new Date().getFullYear().toString();
+  return await this.leadService.getSubmissionActivity(year);
+}
 
   // Single Lead Get API
   @Get(':id')

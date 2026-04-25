@@ -1,22 +1,26 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
+  Get,
+  Param,
+  Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiExcludeController,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { RolesGuard } from '../../../common/guard/role/roles.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { ConversationService } from './conversation.service';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import { RolesGuard } from '../../../common/guard/role/roles.guard';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { Role } from '../../../common/guard/role/role.enum';
-import { Roles } from '../../../common/guard/role/roles.decorator';
 
 @ApiBearerAuth()
+@ApiExcludeController()
 @ApiTags('Conversation')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('chat/conversation')
@@ -35,11 +39,10 @@ export class ConversationController {
   }
 
   //  *conversation list of user
-  @Get('conversation-list') 
+  @Get('conversation-list')
   @ApiOperation({ summary: 'Get all conversations for the authenticated user' })
-  async findAll(@Req() req) { 
-  
-    const user = req.user.userId; 
+  async findAll(@Req() req) {
+    const user = req.user.userId;
 
     return this.conversationService.findAll(user);
   }
@@ -61,15 +64,10 @@ export class ConversationController {
     return this.conversationService.remove(id, user);
   }
 
-
   // user information
   @Get('all-user')
-  async findAllUser(
-    @Req() req,
-  ) {
+  async findAllUser(@Req() req) {
     const user = req.user.userId;
     return this.conversationService.findAllUserInfo(user);
   }
-
-
 }

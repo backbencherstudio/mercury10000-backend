@@ -260,3 +260,30 @@ export class GetLeadActivityResponseDto {
   @ApiProperty({ type: ActivityDataDto })
   data: ActivityDataDto;
 }
+
+
+export class LeadActivityQueryDto {
+  @ApiPropertyOptional({ example: '2026', description: 'Year to filter activity' })
+  @IsOptional()
+  @IsString()
+  year?: string;
+}
+
+class MonthlyActivityDto {
+  @ApiProperty({ example: 'Jan' })
+  month: string;
+
+  @ApiProperty({ example: 12, description: 'Total leads submitted' })
+  submitted: number;
+
+  @ApiProperty({ example: 8, description: 'Leads that are Active/Valid' })
+  active: number;
+}
+
+export class LeadActivityResponseDto {
+  @ApiProperty({ example: true })
+  success: boolean;
+
+  @ApiProperty({ type: [MonthlyActivityDto] })
+  data: MonthlyActivityDto[];
+}

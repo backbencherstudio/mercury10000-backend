@@ -475,5 +475,54 @@ export class LeadService {
     };
   }
 
-  
+  async getSubmissionActivity(year: string) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    const activityData = await Promise.all(
+      months.map(async (month, index) => {
+        //
+        const startDate = new Date(parseInt(year), index, 1);
+        const endDate = new Date(parseInt(year), index + 1, 0, 23, 59, 59);
+
+        //
+        const submittedCount = await this.prisma.lead.count({
+          where: {
+            created_at: { gte: startDate, lte: endDate },
+          },
+        });
+
+        //
+        const activeCount = await this.prisma.lead.count({
+          where: {
+            created_at: { gte: startDate, lte: endDate },
+            status: { in: ['ACTIVE', 'SCHEDULED'] },
+          },
+        });
+
+        return {
+          month,
+          submitted: submittedCount,
+          active: activeCount,
+        };
+      }),
+    );
+
+    return {
+      success: true,
+      data: activityData,
+    };
+  }
 }

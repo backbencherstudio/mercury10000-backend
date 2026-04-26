@@ -86,6 +86,7 @@ model User {
   leads                 Lead[]
   connectionResponses   ConnectionResponse[]
   targeted_requests     ConnectionRequest[]  @relation("UserTargetedConnections")
+  supportTickets        support_tickets[]
 
   @@map("users")
 }
@@ -474,4 +475,29 @@ model ConnectionResponse {
   updated_at DateTime @default(now()) @updatedAt
 
   @@map("connection_responses")
+}
+
+enum SupportStatus {
+  PENDING
+  SOLVED
+  RESOLVED
+}
+
+model support_tickets {
+  id      String @id @default(cuid())
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id])
+
+  // Secretary's input
+  secretary_note String? @db.Text
+
+  // Status tracking
+  status SupportStatus @default(PENDING)
+
+  // Timestamps
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  deleted_at DateTime?
+
+  @@map("support_tickets")
 }

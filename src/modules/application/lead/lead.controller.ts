@@ -103,8 +103,7 @@ export class LeadController {
     return await this.leadService.getAllLeadsInProcess(query, userId);
   }
 
-
-    @Get('lead-activity')
+  @Get('lead-activity')
   @ApiOperation({
     summary: 'Get lead activity overview',
     description:
@@ -121,12 +120,12 @@ export class LeadController {
   }
 
   @Get('dashboard/submission-activity')
-@ApiOperation({ summary: 'Get lead submission activity for chart' })
-@ApiResponse({ status: 200, type: LeadActivityResponseDto })
-async getSubmissionActivity(@Query() query: LeadActivityQueryDto) {
-  const year = query.year || new Date().getFullYear().toString();
-  return await this.leadService.getSubmissionActivity(year);
-}
+  @ApiOperation({ summary: 'Get lead submission activity for chart' })
+  @ApiResponse({ status: 200, type: LeadActivityResponseDto })
+  async getSubmissionActivity(@Query() query: LeadActivityQueryDto) {
+    const year = query.year || new Date().getFullYear().toString();
+    return await this.leadService.getSubmissionActivity(year);
+  }
 
   // Single Lead Get API
   @Get(':id')
@@ -209,6 +208,4 @@ async getSubmissionActivity(@Query() query: LeadActivityQueryDto) {
     const userId = req.user.userId;
     return await this.leadService.getLeadStatusStats(userId, user_id);
   }
-
-
 }

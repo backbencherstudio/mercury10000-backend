@@ -8,6 +8,7 @@ import { LivekitModule } from 'src/modules/application/live/livekit/livekit.modu
 import { LeadModule } from './lead/lead.module';
 import { TradeModule } from './trade/trade.module';
 import { ConnectionModule } from './connection/connection.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ConnectionModule } from './connection/connection.module';
     LeadModule,
     TradeModule,
     ConnectionModule,
+    SupportModule,
   ],
 })
 export class ApplicationModule {}

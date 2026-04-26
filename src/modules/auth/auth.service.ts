@@ -184,6 +184,63 @@ export class AuthService {
       const users = await this.prisma.user.findMany({
         skip: (page - 1) * limit,
         take: limit,
+        where: {
+          type: 'USER',
+        },
+        select: {
+          id: true,
+          name: true,
+          phone_number: true,
+          trades: true,
+          email: true,
+          city: true,
+          country: true,
+          type: true,
+        },
+      });
+      return {
+        success: true,
+        message: 'All users fetched successfully',
+        data: users,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message,
+      };
+    }
+  }
+
+  // get all secretary with pagination
+  async getAllSecretary({
+    page,
+    limit,
+    user_id,
+  }: {
+    page: number;
+    limit: number;
+    user_id: string;
+  }) {
+    try {
+      const user = await this.userRepository.getUserDetails(user_id);
+      if (!user) {
+        return {
+          success: false,
+          message: 'User not found',
+        };
+      }
+      if (user.type !== 'SUP_ADMIN') {
+        return {
+          success: false,
+          message: 'You are not authorized to perform this action',
+        };
+      }
+      const users = await this.prisma.user.findMany({
+        skip: (page - 1) * limit,
+        take: limit,
+        where: {
+          type: 'SECRETARY',
+        },
         select: {
           id: true,
           name: true,

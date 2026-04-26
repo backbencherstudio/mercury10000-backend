@@ -12,12 +12,9 @@ import {
   Query,
   Req,
   Res,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -30,7 +27,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-import { memoryStorage } from 'multer';
 import { ApiAllAuth } from 'src/modules/auth/decorators/get-user.decorator';
 import {
   ChangePasswordDto,
@@ -210,6 +206,34 @@ export class AuthController {
   ) {
     try {
       return await this.authService.getAllUsers({ page, limit });
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to fetch all users',
+      };
+    }
+  }
+
+  // get all users with pagination
+  @Get('all_secretary')
+  @UseGuards(JwtAuthGuard)
+  @ApiAllAuth()
+  @ApiOperation({ summary: 'Get all secretary' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'All secretary fetched successfully',
+    type: UserSingleResDto,
+  })
+  async getAllSecretary(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+    @Req() req: Request,
+  ) {
+    try {
+      const user_id = req.user.userId;
+      return await this.authService.getAllSecretary({ page, limit, user_id });
     } catch (error) {
       return {
         success: false,

@@ -93,7 +93,7 @@ export class SupportService {
       },
     });
 
-    // 2. Jodi status RESOLVED hoy tobe mail pathano hobe
+    // 
     if (dto.status === SupportStatus.RESOLVED && ticket.user?.email) {
       try {
         await this.sendResolutionEmail({
@@ -102,7 +102,7 @@ export class SupportService {
           ticketId: ticket.id,
         });
       } catch (error) {
-        // Email fail holeo jeno process break na hoy
+        //
         console.error(`Email sending failed for ticket ${id}:`, error);
       }
     }
@@ -121,7 +121,7 @@ export class SupportService {
     await this.mailerService.sendMail({
       to: email,
       subject: `Support Request Resolved - #${ticketId}`,
-      
+
       context: {
         name: name,
         ticketId: ticketId,

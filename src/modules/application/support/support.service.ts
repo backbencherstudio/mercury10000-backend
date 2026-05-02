@@ -93,7 +93,7 @@ export class SupportService {
       },
     });
 
-    // 
+    //
     if (dto.status === SupportStatus.RESOLVED && ticket.user?.email) {
       try {
         await this.sendResolutionEmail({

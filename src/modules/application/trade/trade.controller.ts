@@ -39,7 +39,10 @@ export class TradeController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update trade status or name' })
+  @ApiOperation({
+    summary: 'Update trade status or name',
+    description: 'ACTIVE, PAUSED',
+  })
   update(@Param('id') id: string, @Body() dto: UpdateTradeDto) {
     return this.tradeService.update(id, dto);
   }

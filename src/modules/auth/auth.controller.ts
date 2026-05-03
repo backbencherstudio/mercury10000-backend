@@ -151,6 +151,8 @@ export class AuthController {
         fcm_token: body.fcm_token,
       });
 
+      console.log('login resposne ', response);
+
       // store to secure cookies
       res.cookie('refresh_token', response.authorization.refresh_token, {
         httpOnly: true,

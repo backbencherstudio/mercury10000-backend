@@ -165,7 +165,11 @@ export class LeadController {
 
   // Lead Status Update API
   @Patch(':id/status')
-  @ApiOperation({ summary: 'Update Lead Status by Sup Admin' })
+  @ApiOperation({
+    summary: 'Update Lead Status by Sup Admin',
+    description:
+      ' SCHEDULED, ACTIVE, SUBMITTED, INVALID, CLOSED',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lead status updated successfully',

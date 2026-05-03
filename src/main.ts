@@ -18,12 +18,20 @@ async function bootstrap() {
     rawBody: true,
   });
 
+  const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:3000'];
+
   app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix('api');
-  app.enableCors();
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true, // Required for cookies and auth headers
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+  });
   app.use(
     helmet({
       contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
     }),
   );
 
@@ -132,7 +140,9 @@ async function bootstrap() {
 
                 // ✅ localStorage এ ম্যানুয়ালি সেভ করো যাতে reload এ টোকেন থাকে
                 try {
-                  const existing = JSON.parse(localStorage.getItem('authorized') || '{}');
+                  const existing = JSON.parse(
+                    localStorage.getItem('authorized') || '{}',
+                  );
                   existing[authKey] = authObj[authKey];
                   localStorage.setItem('authorized', JSON.stringify(existing));
                 } catch (e) {

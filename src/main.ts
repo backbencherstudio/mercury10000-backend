@@ -18,14 +18,12 @@ async function bootstrap() {
     rawBody: true,
   });
 
-  const allowedOrigins = [process.env.FRONTEND_URL || 'http://localhost:3000'];
-
   app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: allowedOrigins,
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true, // Required for cookies and auth headers
+    credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
   });
   app.use(

@@ -9,6 +9,7 @@ import { LeadModule } from './lead/lead.module';
 import { TradeModule } from './trade/trade.module';
 import { ConnectionModule } from './connection/connection.module';
 import { SupportModule } from './support/support.module';
+import { OnboardingModule } from './onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { SupportModule } from './support/support.module';
     TradeModule,
     ConnectionModule,
     SupportModule,
+    OnboardingModule,
   ],
 })
 export class ApplicationModule {}

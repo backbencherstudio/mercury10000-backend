@@ -1,13 +1,16 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CreateTradeDto } from 'src/modules/application/trade/dto/create-trade.dto';
 import { UpdateTradeDto } from 'src/modules/application/trade/dto/update-trade.dto';
 import { TradeService } from './trade.service';
@@ -26,10 +29,16 @@ export class TradeController {
     return this.tradeService.create(dto);
   }
 
+  //get all with pagination
   @Get()
   @ApiOperation({ summary: 'Get all trades' })
-  findAll() {
-    return this.tradeService.findAll();
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  findAll(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ) {
+    return this.tradeService.findAll({ page, limit });
   }
 
   @Get(':id')

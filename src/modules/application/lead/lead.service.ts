@@ -175,6 +175,68 @@ export class LeadService {
     };
   }
 
+  // dashboard lead statistics
+  async getLeadStatistics(year: number, userId: string) {
+    // 1. User role check
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { type: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    // 2. Date Range Setup
+    const startDate = new Date(year, 0, 1); // Jan 1st
+    const endDate = new Date(year, 11, 31, 23, 59, 59); // Dec 31st
+
+    // 3. Fetch Leads
+    const leads = await this.prisma.lead.findMany({
+      where: {
+        created_at: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: 'SUBMITTED', // Status filter
+        ...(user.type !== 'SUP_ADMIN' ? { user_id: userId } : {}),
+      },
+      select: {
+        created_at: true,
+      },
+    });
+
+    // 4. Initialize result array with 0
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    const stats = monthNames.map((name) => ({
+      month: name,
+      count: 0,
+    }));
+
+    // 5. Aggregate data
+    leads.forEach((lead) => {
+      const monthIndex = lead.created_at.getMonth(); // getMonth returns 0-11
+      stats[monthIndex].count += 1;
+    });
+
+    return {
+      success: true,
+      data: stats,
+    };
+  }
+
   async getAllLeadsInProcess(query: GetLeadsQueryDto, userId: string) {
     const { page, limit, search, trade_id, status } = query;
     const skip = (page - 1) * limit;

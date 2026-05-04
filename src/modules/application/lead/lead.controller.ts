@@ -85,6 +85,18 @@ export class LeadController {
     return await this.leadService.getAllLeads(query, req.user.userId);
   }
 
+  // lead.controller.ts
+
+@Get('statistics')
+@ApiOperation({ summary: 'Get lead submission statistics for chart' })
+@ApiQuery({ name: 'year', required: false, type: Number, example: 2026 })
+async getLeadStatistics(
+  @Query('year', new ParseIntPipe({ optional: true })) year: number = new Date().getFullYear(),
+  @Req() req: Request,
+) {
+  return await this.leadService.getLeadStatistics(year, req.user.userId);
+}
+
   @Get('in-process')
   @ApiOperation({
     summary: 'Get all leads in process - Sup Admin',

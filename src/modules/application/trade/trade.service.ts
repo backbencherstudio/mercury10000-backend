@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateTradeDto } from 'src/modules/application/trade/dto/create-trade.dto';
 import { UpdateTradeDto } from 'src/modules/application/trade/dto/update-trade.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -14,14 +18,30 @@ export class TradeService {
     if (existing) throw new ConflictException('Trade name already exists');
 
     const trade = await this.prisma.trade.create({ data: dto });
-    return { success: true, message: 'Trade created successfully', data: trade };
+    return {
+      success: true,
+      message: 'Trade created successfully',
+      data: trade,
+    };
   }
 
-  async findAll() {
+  async findAll(req: { page: number; limit: number }) {
+    const total = await this.prisma.trade.count();
     const trades = await this.prisma.trade.findMany({
+      skip: (req.page - 1) * req.limit,
+      take: req.limit,
       orderBy: { created_at: 'desc' },
     });
-    return { success: true, data: trades, total: trades.length };
+    const totalPages = Math.ceil(total / req.limit);
+
+    return {
+      success: true,
+      data: trades,
+      total: total,
+      totalPages: totalPages,
+      currentPage: req.page,
+      limit: req.limit,
+    };
   }
 
   async findOne(id: string) {
@@ -36,7 +56,11 @@ export class TradeService {
       where: { id },
       data: dto,
     });
-    return { success: true, message: 'Trade updated successfully', data: updated };
+    return {
+      success: true,
+      message: 'Trade updated successfully',
+      data: updated,
+    };
   }
 
   async remove(id: string) {

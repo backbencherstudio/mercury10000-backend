@@ -92,6 +92,7 @@ export default () => ({
     jobPhoto: 'job-photo/',
     postCommunity: 'post-community/',
     leads: 'leads/',
+    video: 'video/',
   },
 
   defaultUser: {

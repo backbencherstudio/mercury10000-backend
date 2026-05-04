@@ -328,6 +328,8 @@ model Attachment {
   lead                Lead?              @relation(fields: [lead_id], references: [id], onDelete: Cascade)
   connectionRequest   ConnectionRequest? @relation(fields: [connectionRequestId], references: [id])
   connectionRequestId String?
+  onboarding_tutorial OnboardingSetting? @relation("TutorialVideo")
+  onboarding_meeting  OnboardingSetting? @relation("MeetingVideo")
 
   @@map("attachments")
 }
@@ -500,4 +502,23 @@ model support_tickets {
   deleted_at DateTime?
 
   @@map("support_tickets")
+}
+
+model OnboardingSetting {
+  id String @id @default(uuid())
+
+  // Tutorial Video Fields
+  tutorial_video_id             String?     @unique
+  tutorial_video                Attachment? @relation("TutorialVideo", fields: [tutorial_video_id], references: [id])
+  tutorial_unskippable_duration Int         @default(30)
+
+  // Meeting Video Fields
+  meeting_video_id             String?     @unique
+  meeting_video                Attachment? @relation("MeetingVideo", fields: [meeting_video_id], references: [id])
+  meeting_unskippable_duration Int         @default(30)
+
+  updated_at DateTime @default(now()) @updatedAt
+  created_at DateTime @default(now())
+
+  @@map("onboarding_settings")
 }

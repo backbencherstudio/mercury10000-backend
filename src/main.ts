@@ -89,7 +89,7 @@ async function bootstrap() {
     )
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
-      'secretery_token',
+      'secretary_token',
     )
     .build();
 
@@ -97,7 +97,7 @@ async function bootstrap() {
 
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
-      persistAuthorization: true, // ✅ এটা টোকেনকে localStorage এ সেভ রাখে
+      persistAuthorization: true,
       defaultModelsExpandDepth: -1,
       displayRequestDuration: true,
 
@@ -114,10 +114,10 @@ async function bootstrap() {
 
             if (token) {
               const authKey =
-                role === 'admin'
+                role === 'sup_admin'
                   ? 'admin_token'
-                  : role === 'secretery'
-                    ? 'secretery_token'
+                  : role === 'secretary'
+                    ? 'secretary_token'
                     : 'user_token';
 
               const ui = window['ui'];

@@ -18,6 +18,6 @@ export function ApiAllAuth() {
   return applyDecorators(
     ApiBearerAuth('user_token'),
     ApiBearerAuth('admin_token'),
-    ApiBearerAuth('secretery_token'),
+    ApiBearerAuth('secretary_token'),
   );
 }

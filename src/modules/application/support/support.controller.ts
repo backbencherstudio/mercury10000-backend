@@ -54,4 +54,11 @@ export class SupportController {
   async findAll() {
     return this.supportService.findAll();
   }
+
+  //get single support ticket
+  @Get(':id')
+  @ApiOperation({ summary: 'Get single support ticket' })
+  async findOne(@Param('id') id: string) {
+    return this.supportService.findOne(id);
+  }
 }

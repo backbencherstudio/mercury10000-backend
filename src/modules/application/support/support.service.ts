@@ -58,6 +58,32 @@ export class SupportService {
     };
   }
 
+  //get single support ticket
+  async findOne(id: string) {
+    const ticket = await this.prisma.support_tickets.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone_number: true,
+            city: true,
+          },
+        },
+      },
+    });
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+    return {
+      success: true,
+      message: 'Ticket fetched successfully',
+      data: ticket,
+    };
+  }
+
   async addSecretaryNote(id: string, dto: SecretaryNoteDto) {
     const ticket = await this.prisma.support_tickets.update({
       where: { id },

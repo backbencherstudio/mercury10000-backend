@@ -87,6 +87,8 @@ model User {
   connectionResponses   ConnectionResponse[]
   targeted_requests     ConnectionRequest[]  @relation("UserTargetedConnections")
   supportTickets        support_tickets[]
+  giftCards             giftCard[]
+  userRewards           UserReward[]
 
   @@map("users")
 }
@@ -394,6 +396,7 @@ model Lead {
   notes          String?    @db.Text
   status         LeadStatus @default(SUBMITTED)
   scheduled_time DateTime?  @map("scheduled_time")
+  collected      Boolean    @default(false) @map("collected")
 
   // Timestamps
   created_at DateTime @default(now())
@@ -521,4 +524,30 @@ model OnboardingSetting {
   created_at DateTime @default(now())
 
   @@map("onboarding_settings")
+}
+
+model giftCard {
+  id      String  @id @default(cuid())
+  name    String?
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id])
+
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @default(now()) @updatedAt
+  userRewards UserReward[]
+
+  @@map("gift_cards")
+}
+
+model UserReward {
+  id           String   @id @default(cuid())
+  user_id      String   @map("user_id")
+  gift_card_id String   @map("gift_card_id")
+  sent_at      DateTime @default(now()) @map("sent_at")
+
+  // Relations
+  user     User     @relation(fields: [user_id], references: [id])
+  giftCard giftCard @relation(fields: [gift_card_id], references: [id])
+
+  @@map("user_rewards")
 }

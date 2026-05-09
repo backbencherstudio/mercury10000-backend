@@ -10,6 +10,7 @@ import { TradeModule } from './trade/trade.module';
 import { ConnectionModule } from './connection/connection.module';
 import { SupportModule } from './support/support.module';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { GiftcardModule } from './giftcard/giftcard.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     ConnectionModule,
     SupportModule,
     OnboardingModule,
+    GiftcardModule,
   ],
 })
 export class ApplicationModule {}

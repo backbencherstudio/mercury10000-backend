@@ -3,6 +3,8 @@ import {
   Controller,
   DefaultValuePipe,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -87,15 +89,16 @@ export class LeadController {
 
   // lead.controller.ts
 
-@Get('statistics')
-@ApiOperation({ summary: 'Get lead submission statistics for chart' })
-@ApiQuery({ name: 'year', required: false, type: Number, example: 2026 })
-async getLeadStatistics(
-  @Query('year', new ParseIntPipe({ optional: true })) year: number = new Date().getFullYear(),
-  @Req() req: Request,
-) {
-  return await this.leadService.getLeadStatistics(year, req.user.userId);
-}
+  @Get('statistics')
+  @ApiOperation({ summary: 'Get lead submission statistics for chart' })
+  @ApiQuery({ name: 'year', required: false, type: Number, example: 2026 })
+  async getLeadStatistics(
+    @Query('year', new ParseIntPipe({ optional: true }))
+    year: number = new Date().getFullYear(),
+    @Req() req: Request,
+  ) {
+    return await this.leadService.getLeadStatistics(year, req.user.userId);
+  }
 
   @Get('in-process')
   @ApiOperation({
@@ -113,6 +116,62 @@ async getLeadStatistics(
   async getInProcessLeads(@Query() query: GetLeadsQueryDto, @Req() req: any) {
     const userId = req.user.userId;
     return await this.leadService.getAllLeadsInProcess(query, userId);
+  }
+
+  @Get('all-submitted')
+  @ApiOperation({
+    summary: 'Get all leads submitted list',
+    description: 'Fetches leads that are submitted .',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Leads fetched successfully',
+    type: GetLeadsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getAllSubmitedLeads(@Query() query: GetLeadsQueryDto, @Req() req: any) {
+    const userId = req.user.userId;
+    return await this.leadService.getAllSubmitedLeads(query, userId);
+  }
+
+  //get all shedoul, active, invalid,closed leads
+  @Get('all-process-leads')
+  @ApiOperation({
+    summary: 'Get all leads shedoul active invalid closed list',
+    description: 'Fetches leads that are shedoul active invalid closed .',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Leads fetched successfully',
+    type: GetLeadsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async getAllshedoulactiveinvalidleads(
+    @Query() query: GetLeadsQueryDto,
+    @Req() req: any,
+  ) {
+    const userId = req.user.userId;
+    return await this.leadService.getAllshedoulactiveinvalidleads(
+      query,
+      userId,
+    );
+  }
+
+  @Get('all-see-user-leads')
+  @ApiOperation({
+    summary: 'Get all leads submitted list',
+    description: 'Fetches leads that are submitted .',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Leads fetched successfully',
+  })
+  @HttpCode(HttpStatus.OK)
+  async findAll(@Req() req: any, @Query('search') search?: string) {
+    const userId = req.user.userId;
+    return this.leadService.getSeeAllUserLeads({ search }, userId);
   }
 
   @Get('lead-activity')
@@ -179,8 +238,7 @@ async getLeadStatistics(
   @Patch(':id/status')
   @ApiOperation({
     summary: 'Update Lead Status by Sup Admin',
-    description:
-      ' SCHEDULED, ACTIVE, SUBMITTED, INVALID, CLOSED',
+    description: ' SCHEDULED, ACTIVE, SUBMITTED, INVALID, CLOSED',
   })
   @ApiResponse({
     status: 200,

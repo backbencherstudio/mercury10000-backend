@@ -57,7 +57,7 @@ export class LeadService {
 
       return await this.prisma.$transaction(async (tx) => {
         const count = await tx.lead.count();
-        const next_lead_no = (count + 1).toString();
+        const next_lead_no = (count + 100).toString();
 
         const lead = await tx.lead.create({
           data: {
@@ -308,6 +308,215 @@ export class LeadService {
         total_pages: Math.ceil(total / limit),
       },
     };
+  }
+
+  // get all submitted leads
+  async getAllSubmitedLeads(query: GetLeadsQueryDto, userId: string) {
+    const { page, limit, search, trade_id, status } = query;
+    const skip = (page - 1) * limit;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { type: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
+      throw new ForbiddenException(
+        'Access denied. Only Super Admin and secretary can view in-process leads.',
+      );
+    }
+
+    // Build Filter
+    const where: Prisma.LeadWhereInput = {
+      status: 'SUBMITTED' as LeadStatus,
+
+      ...(trade_id ? { trade_id } : {}),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { lead_no: { contains: search, mode: 'insensitive' } },
+              { address: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [total, leads] = await Promise.all([
+      this.prisma.lead.count({ where }),
+      this.prisma.lead.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          trade: true,
+          files: true,
+          user: { select: { name: true } },
+        },
+        orderBy: { scheduled_time: 'asc' },
+      }),
+    ]);
+
+    // Mapping through each lead to transform file paths
+    const formattedLeads = leads.map((lead) => ({
+      ...lead,
+      files: lead.files.map((file) => ({
+        ...file,
+        // Generating full URL for each attachment
+        path: TajulStorage.url(`${appConfig().storageUrl.leads}${file.path}`),
+      })),
+    }));
+
+    return {
+      success: true,
+      message: 'In-process leads fetched successfully',
+      data: formattedLeads,
+      meta: {
+        total_items: total,
+        current_page: page,
+        limit: limit,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // get all shedoul, active, invalid,closed leads
+  async getAllshedoulactiveinvalidleads(
+    query: GetLeadsQueryDto,
+    userId: string,
+  ) {
+    const { page, limit, search, trade_id, status } = query;
+    const skip = (page - 1) * limit;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { type: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
+      throw new ForbiddenException(
+        'Access denied. Only Super Admin and secretary can view in-process leads.',
+      );
+    }
+
+    // Build Filter
+    const where: Prisma.LeadWhereInput = {
+      status: {
+        in: ['SCHEDULED', 'ACTIVE', 'INVALID', 'CLOSED'] as LeadStatus[],
+      },
+
+      ...(trade_id ? { trade_id } : {}),
+      ...(search
+        ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' } },
+              { lead_no: { contains: search, mode: 'insensitive' } },
+              { address: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [total, leads] = await Promise.all([
+      this.prisma.lead.count({ where }),
+      this.prisma.lead.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          trade: true,
+          files: true,
+          user: { select: { name: true } },
+        },
+        orderBy: { scheduled_time: 'asc' },
+      }),
+    ]);
+
+    // Mapping through each lead to transform file paths
+    const formattedLeads = leads.map((lead) => ({
+      ...lead,
+      files: lead.files.map((file) => ({
+        ...file,
+        // Generating full URL for each attachment
+        path: TajulStorage.url(`${appConfig().storageUrl.leads}${file.path}`),
+      })),
+    }));
+
+    return {
+      success: true,
+      message: 'In-process leads fetched successfully',
+      data: formattedLeads,
+      meta: {
+        total_items: total,
+        current_page: page,
+        limit: limit,
+        total_pages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getSeeAllUserLeads(query: { search?: string }, userId: string) {
+    const { search } = query;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { type: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
+      throw new ForbiddenException(
+        'Access denied. Only Super Admin and secretary can view in-process leads.',
+      );
+    }
+
+    const leads = await this.prisma.lead.findMany({
+      where: {
+        ...(search && {
+          OR: [
+            { lead_no: { contains: search, mode: 'insensitive' } },
+            { address: { contains: search, mode: 'insensitive' } },
+            { name: { contains: search, mode: 'insensitive' } },
+          ],
+        }),
+      },
+      include: {
+        trade: true, // Company details এর জন্য রিলেশন লোড করা হচ্ছে
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    return leads.map((lead: any) => {
+      const isSubmitted = lead.status === LeadStatus.SUBMITTED;
+      const isActive = lead.status === LeadStatus.ACTIVE;
+      const isScheduled = lead.status === LeadStatus.SCHEDULED;
+
+      return {
+        id: lead.id,
+        lead_no: lead.lead_no,
+        name: lead.name,
+        phone: lead.phone,
+        lead_submitted_addr: isSubmitted ? lead.address : null,
+        qualified_leads_addr:
+          isSubmitted || isActive || isScheduled ? lead.address : null,
+        conversation_addr: isActive || isScheduled ? lead.address : null,
+        to_company: isActive ? lead.trade?.name || 'LMS' : null,
+        starting_date: lead.scheduled_time
+          ? lead.scheduled_time.toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })
+          : 'N/A',
+
+        status: lead.status,
+        created_at: lead.created_at,
+      };
+    });
   }
 
   // find one lead

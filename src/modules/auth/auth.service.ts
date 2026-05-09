@@ -31,15 +31,6 @@ export class AuthService {
         where: {
           id: userId,
         },
-        select: {
-          id: true,
-          name: true,
-          phone_number: true,
-          email: true,
-          avatar: true,
-          address: true,
-          type: true,
-        },
       });
 
       if (!user) {
@@ -312,8 +303,6 @@ export class AuthService {
         'EX',
         60 * 60 * 24 * 7,
       );
-
-
 
       return {
         success: true,

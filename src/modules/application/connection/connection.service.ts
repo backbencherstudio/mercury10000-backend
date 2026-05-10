@@ -229,33 +229,53 @@ export class ConnectionRequestService {
     };
   }
 
-  /**
-   * User Listing: Shows requests with a flag if the user already responded
-   */
-  async getAllRequestsForUser(userId: string) {
-    const requests = await this.prisma.connectionRequest.findMany({
-      include: {
-        trade: true,
-        responses: {
-          where: { user_id: userId },
-          select: { id: true },
+/**
+ * User Specific Targeted Requests: 
+ * নির্দিষ্ট ইউজারের জন্য পাঠানো রিকোয়েস্টগুলো দেখাবে যেখানে স্ট্যাটাস OPEN অথবা FULFILLED
+ */
+async getAllRequestsForUser(userId: string) {
+  const requests = await this.prisma.connectionRequest.findMany({
+    where: {
+      targeted_users: {
+        some: {
+          id: userId,
         },
       },
-      orderBy: { created_at: 'desc' },
-    });
+      status: {
+        in: ['OPEN', 'FULFILLED'],
+      },
+    },
+    include: {
+      trade: {
+        select: { name: true },
+      },
+      responses: {
+        where: { user_id: userId },
+        select: { id: true },
+      },
+    },
+    orderBy: { created_at: 'desc' },
+  });
 
-    // Formatting for UI (Status: Open/Fulfilled and already_responded flag)
-    const data = requests.map((req) => ({
-      id: req.id,
-      trade: req.trade.name,
-      location: req.location,
-      status: req.status, // OPEN or FULFILLED
-      time_ago: req.created_at, // Frontend will format as "2 hours ago"
-      already_responded: req.responses.length > 0,
-    }));
+  // UI ফরম্যাটিং
+  const data = requests.map((req) => ({
+    id: req.id,
+    trade: req.trade.name,
+    location: req.location,
+    city: req.city,
+    description: req.description,
+    status: req.status,
+    time_ago: req.created_at,
+    // ইউজার কি অলরেডি রেসপন্স সাবমিট করেছে?
+    is_submitted: req.responses.length > 0,
+  }));
 
-    return { success: true, data };
-  }
+  return {
+    success: true,
+    count: data.length,
+    data,
+  };
+}
 
   async assignUsersToRequest(requestId: string, userIds: string[]) {
     const request = await this.prisma.connectionRequest.findUnique({

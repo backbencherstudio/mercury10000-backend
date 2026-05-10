@@ -472,9 +472,10 @@ model ConnectionResponse {
   user                  User              @relation(fields: [user_id], references: [id])
 
   // Contractor details submitted by user
-  contractor_name  String? @map("contractor_name")
-  contractor_phone String? @map("contractor_phone")
-  note             String? @db.Text
+  contractor_name  String?          @map("contractor_name")
+  contractor_phone String?          @map("contractor_phone")
+  note             String?          @db.Text
+  status           ConnectionStatus @default(OPEN)
 
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt

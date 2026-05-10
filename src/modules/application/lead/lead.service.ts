@@ -10,7 +10,9 @@ import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
 import appConfig from 'src/config/app.config';
 import {
   CreateLeadResDto,
+  GetAllSeeUserQueryDto,
   GetLeadsQueryDto,
+  LeadActivityMonthWiseQueryDto,
   UpdateLeadScheduleDto,
   UpdateLeadStatusDto,
 } from 'src/modules/application/lead/dto/res-lead.dto';
@@ -175,6 +177,43 @@ export class LeadService {
     };
   }
 
+  async getDashboardStats() {
+    const [
+      totalUsers,
+      newLeads,
+      userRequests,
+      giftsOverview,
+      connectionRequests,
+    ] = await Promise.all([
+      // 1. Total Users
+      this.prisma.user.count({
+        where: { deleted_at: null, type: 'USER' },
+      }),
+
+      // 2. New Lead Received (Total Leads)
+      this.prisma.lead.count(),
+
+      // 3. User Requests (Assuming this maps to ConnectionRequest or similar logic)
+      this.prisma.connectionRequest.count(),
+
+      // 4. Gifts Overview (Total Rewards issued or GiftCards)
+      this.prisma.userReward.count(),
+
+      // 5. Connection Requests
+      this.prisma.connectionRequest.count({
+        where: { status: 'OPEN' }, // Specific filter if needed
+      }),
+    ]);
+
+    return {
+      total_users: totalUsers,
+      new_lead_received: newLeads,
+      user_requests: userRequests,
+      gifts_overview: giftsOverview,
+      connection_request: connectionRequests,
+    };
+  }
+
   // dashboard lead statistics
   async getLeadStatistics(year: number, userId: string) {
     // 1. User role check
@@ -234,6 +273,40 @@ export class LeadService {
     return {
       success: true,
       data: stats,
+    };
+  }
+
+  async getMonthlyLeadDetails(userId: string, year: number, month: number) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999); // মাসের শেষ দিন
+
+    // 
+    const leads = await this.prisma.lead.findMany({
+      where: {
+        user_id: userId,
+        created_at: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: 'SUBMITTED',
+      },
+      include: {
+        trade: {
+          select: {
+            id: true,
+          },
+        },
+        files: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    return {
+      success: true,
+      message: `Total ${leads.length} leads found for month ${month}`,
+      data: leads,
     };
   }
 
@@ -457,40 +530,78 @@ export class LeadService {
     };
   }
 
-  async getSeeAllUserLeads(query: { search?: string }, userId: string) {
-    const { search } = query;
+  async getSeeAllUserLeads(query: GetAllSeeUserQueryDto, userId: string) {
+    const { search, startDate, endDate, page = 1, limit = 10 } = query;
+
+    const skip = (page - 1) * limit;
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { type: true },
     });
 
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
       throw new ForbiddenException(
-        'Access denied. Only Super Admin and secretary can view in-process leads.',
+        'Access denied. Only Super Admin and secretary can view leads.',
       );
     }
 
-    const leads = await this.prisma.lead.findMany({
-      where: {
-        ...(search && {
-          OR: [
-            { lead_no: { contains: search, mode: 'insensitive' } },
-            { address: { contains: search, mode: 'insensitive' } },
-            { name: { contains: search, mode: 'insensitive' } },
-          ],
-        }),
-      },
-      include: {
-        trade: true, // Company details এর জন্য রিলেশন লোড করা হচ্ছে
-      },
-      orderBy: {
-        created_at: 'desc',
-      },
-    });
+    const whereCondition: any = {
+      ...(search && {
+        OR: [
+          {
+            lead_no: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            address: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
 
-    return leads.map((lead: any) => {
+      ...(startDate &&
+        endDate && {
+          created_at: {
+            gte: new Date(startDate),
+            lte: new Date(endDate),
+          },
+        }),
+    };
+
+    const [leads, total] = await Promise.all([
+      this.prisma.lead.findMany({
+        where: whereCondition,
+        include: {
+          trade: true,
+        },
+        orderBy: {
+          created_at: 'desc',
+        },
+        skip,
+        take: Number(limit),
+      }),
+
+      this.prisma.lead.count({
+        where: whereCondition,
+      }),
+    ]);
+
+    const formattedLeads = leads.map((lead: any) => {
       const isSubmitted = lead.status === LeadStatus.SUBMITTED;
       const isActive = lead.status === LeadStatus.ACTIVE;
       const isScheduled = lead.status === LeadStatus.SCHEDULED;
@@ -500,11 +611,17 @@ export class LeadService {
         lead_no: lead.lead_no,
         name: lead.name,
         phone: lead.phone,
+        collected: lead.collected,
+
         lead_submitted_addr: isSubmitted ? lead.address : null,
+
         qualified_leads_addr:
           isSubmitted || isActive || isScheduled ? lead.address : null,
+
         conversation_addr: isActive || isScheduled ? lead.address : null,
-        to_company: isActive ? lead.trade?.name || 'LMS' : null,
+
+        to_company: isActive || isScheduled ? lead.trade?.name || 'LMS' : null,
+
         starting_date: lead.scheduled_time
           ? lead.scheduled_time.toLocaleDateString('en-GB', {
               day: 'numeric',
@@ -516,6 +633,98 @@ export class LeadService {
         status: lead.status,
         created_at: lead.created_at,
       };
+    });
+
+    return {
+      data: formattedLeads,
+
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // dashboard lead statistics
+  async getUserStatistics(year: number, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { type: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59);
+
+    const leads = await this.prisma.lead.findMany({
+      where: {
+        created_at: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: 'SUBMITTED',
+        ...(user.type !== 'SUP_ADMIN' ? { user_id: userId } : {}),
+      },
+      select: {
+        created_at: true,
+      },
+    });
+
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    // ekhane amra 'month' index add korchi (1-12)
+    const stats = monthNames.map((name, index) => ({
+      month_name: name,
+      month: index + 1, // 1 for Jan, 2 for Feb...
+      year: year, // Future reference er jonno year o pathiye dilam
+      count: 0,
+    }));
+
+    leads.forEach((lead) => {
+      const monthIndex = lead.created_at.getMonth();
+      stats[monthIndex].count += 1;
+    });
+
+    return {
+      success: true,
+      data: stats,
+    };
+  }
+
+  async updateCollectedStatus(id: string, collected: boolean) {
+    const lead = await this.prisma.lead.findUnique({
+      where: { id },
+    });
+
+    if (!lead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+
+    return await this.prisma.lead.update({
+      where: { id },
+      data: { collected },
+      select: {
+        id: true,
+        lead_no: true,
+        collected: true,
+        updated_at: true,
+      },
     });
   }
 
@@ -697,30 +906,44 @@ export class LeadService {
     };
   }
 
-  async getUserLeadActivity(userId: string) {
-    // user exists check
+  async getUserLeadActivity(
+    userId: string,
+    query: LeadActivityMonthWiseQueryDto,
+  ) {
+    const { startDate, endDate } = query;
+
+    // 1. Verify User
     const userExists = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: { id: true },
     });
     if (!userExists) throw new NotFoundException('User not found');
 
-    // get leads by status
+    // 2. Build Date Filter
+    const dateFilter: any = {};
+    if (startDate) dateFilter.gte = new Date(startDate);
+    if (endDate) dateFilter.lte = new Date(endDate);
+
+    // Define base criteria to avoid repetition
+    const baseWhere = {
+      user_id: userId,
+      ...(startDate || endDate ? { created_at: dateFilter } : {}),
+    };
+
+    // 3. Execute Parallel Queries
     const [submittedLeads, qualifiedLeads, convertedLeads] = await Promise.all([
-      // Total Lead Submitted (SUBMITTED status)
       this.prisma.lead.findMany({
-        where: { user_id: userId, status: 'SUBMITTED' },
+        where: { ...baseWhere, status: 'SUBMITTED' },
         select: { id: true, address: true, created_at: true },
         orderBy: { created_at: 'desc' },
       }),
-      // Qualified Leads
       this.prisma.lead.findMany({
-        where: { user_id: userId, status: 'ACTIVE' },
+        where: { ...baseWhere, status: 'ACTIVE' },
         select: { id: true, address: true, created_at: true },
         orderBy: { created_at: 'desc' },
       }),
-      // Conversions
       this.prisma.lead.findMany({
-        where: { user_id: userId, status: 'SCHEDULED' },
+        where: { ...baseWhere, status: 'SCHEDULED' },
         select: { id: true, address: true, created_at: true },
         orderBy: { created_at: 'desc' },
       }),
@@ -783,10 +1006,19 @@ export class LeadService {
           },
         });
 
+        //
+        const scheduledCount = await this.prisma.lead.count({
+          where: {
+            created_at: { gte: startDate, lte: endDate },
+            status: { in: ['SCHEDULED'] },
+          },
+        });
+
         return {
           month,
           submitted: submittedCount,
           active: activeCount,
+          scheduled: scheduledCount,
         };
       }),
     );

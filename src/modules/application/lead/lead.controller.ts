@@ -20,17 +20,21 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
+import { UpdateCollectedStatusDto } from 'src/modules/application/lead/dto/create-lead.dto';
 import {
   CreateLeadResDto,
+  GetAllSeeUserQueryDto,
   GetLeadActivityResponseDto,
   GetLeadMeetingDetailsDto,
   GetLeadsQueryDto,
   GetLeadsResponseDto,
+  LeadActivityMonthWiseQueryDto,
   LeadActivityQueryDto,
   LeadActivityResponseDto,
   UpdateLeadScheduleDto,
@@ -86,8 +90,10 @@ export class LeadController {
   ) {
     return await this.leadService.getAllLeads(query, req.user.userId);
   }
-
-  // lead.controller.ts
+  @Get('dashboard-stats-count')
+  async getStats() {
+    return await this.leadService.getDashboardStats();
+  }
 
   @Get('statistics')
   @ApiOperation({ summary: 'Get lead submission statistics for chart' })
@@ -168,27 +174,92 @@ export class LeadController {
     status: 200,
     description: 'Leads fetched successfully',
   })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    example: '2022-01-01',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    example: '2022-01-01',
+  })
   @HttpCode(HttpStatus.OK)
-  async findAll(@Req() req: any, @Query('search') search?: string) {
+  async findAll(@Req() req: any, @Query() query: GetAllSeeUserQueryDto) {
     const userId = req.user.userId;
-    return this.leadService.getSeeAllUserLeads({ search }, userId);
+    return this.leadService.getSeeAllUserLeads(query, userId);
   }
 
-  @Get('lead-activity')
-  @ApiOperation({
-    summary: 'Get lead activity overview',
-    description:
-      'Returns counts and lists for Submitted, Qualified, and Converted leads for the logged-in user.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Success',
-    type: GetLeadActivityResponseDto,
-  })
-  async getLeadActivity(@Req() req: any) {
-    const userId = req.user.userId;
-    return await this.leadService.getUserLeadActivity(userId);
+    @Get(':targetUserId/user-statistics')
+  @ApiOperation({ summary: 'Get lead submission statistics for chart' })
+  @ApiQuery({ name: 'year', required: false, type: Number, example: 2026 })
+  async getUserStatistics(
+    @Param('targetUserId') targetUserId: string,
+    @Query('year', new ParseIntPipe({ optional: true }))
+    year: number = new Date().getFullYear(),
+  ) {
+    return await this.leadService.getUserStatistics(year, targetUserId);
   }
+
+  @Get(':targetUserId/user-statistics/details')
+  @ApiOperation({
+    summary: 'Get detailed leads for a specific user and specific month',
+  })
+  @ApiParam({
+    name: 'targetUserId',
+    description: 'The ID of the user whose leads you want to see',
+  })
+  @ApiQuery({ name: 'year', required: false, type: Number, example: 2026 })
+  @ApiQuery({ name: 'month', required: true, type: Number, example: 4 })
+  async getMonthlyLeadDetailsForUser(
+    @Param('targetUserId') targetUserId: string,
+    @Query('month', ParseIntPipe) month: number,
+    @Query('year', new ParseIntPipe({ optional: true }))
+    year: number = new Date().getFullYear(),
+  ) {
+    return await this.leadService.getMonthlyLeadDetails(
+      targetUserId,
+      year,
+      month,
+    );
+  }
+
+  @Patch(':id/collected-status')
+  @ApiOperation({ summary: '(True/False)' })
+  @ApiParam({ name: 'id', description: 'Lead ID (CUID)', type: String })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Status updated successfully.',
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Lead not found.' })
+  async patchCollectedStatus(
+    @Param('id') id: string,
+    @Body() dto: UpdateCollectedStatusDto,
+  ) {
+    return await this.leadService.updateCollectedStatus(id, dto.collected);
+  }
+
+@Get('lead-activity')
+@ApiOperation({
+  summary: 'Get lead activity overview',
+  description: 'Returns counts and lists for Submitted, Qualified, and Converted leads with optional date filtering.',
+})
+@ApiResponse({
+  status: 200,
+  description: 'Success',
+  type: GetLeadActivityResponseDto,
+})
+async getLeadActivity(
+  @Req() req: any, 
+  @Query() query: LeadActivityMonthWiseQueryDto
+) {
+  const userId = req.user.userId;
+  return await this.leadService.getUserLeadActivity(userId, query);
+}
 
   @Get('dashboard/submission-activity')
   @ApiOperation({ summary: 'Get lead submission activity for chart' })

@@ -5,11 +5,18 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { ApiAllAuth } from 'src/modules/auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import {
@@ -17,7 +24,6 @@ import {
   SendBulkRewardDto,
 } from './dto/create-giftcard.dto';
 import { GiftcardService } from './giftcard.service';
-
 
 @ApiTags('Giftcard') // Swagger Documentation categorization
 @ApiAllAuth()
@@ -44,12 +50,21 @@ export class GiftcardController {
     return await this.giftcardService.sendBulkReward(dto);
   }
 
+  @Get('all-gift-status')
+  @ApiOperation({ summary: 'Get all giftcards' })
+  @ApiResponse({ status: 200, description: 'Return all giftcards.' })
+  async getAllGiftStatus() {
+    return await this.giftcardService.getAllGiftStatus();
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all giftcards' })
   @ApiResponse({ status: 200, description: 'Return all giftcards.' })
   async findAll() {
     return await this.giftcardService.findAll();
   }
+
+
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific giftcard by ID' })

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateLeadDto {
   @ApiProperty({ example: '123 Main St, Los Angeles' })
@@ -30,4 +30,11 @@ export class CreateLeadDto {
   @ApiPropertyOptional({ type: 'string', format: 'binary', isArray: true })
   @IsOptional()
   files?: any[];
+}
+
+
+export class UpdateCollectedStatusDto {
+  @ApiProperty({ example: true, description: 'Collected status true or false' })
+  @IsBoolean()
+  collected: boolean;
 }

@@ -81,7 +81,7 @@ export class GiftcardService {
             userRewards: true,
           },
         },
-        // Recent Lead date 
+        // Recent Lead date
         leads: {
           orderBy: {
             created_at: 'desc',
@@ -100,6 +100,7 @@ export class GiftcardService {
           include: {
             giftCard: {
               select: {
+                id: true,
                 name: true,
               },
             },
@@ -108,19 +109,23 @@ export class GiftcardService {
       },
     });
 
-    // data format for frontend 
+    // data format for frontend
     return users.map((user) => {
       const lastReward = user.userRewards[0];
       const recentLead = user.leads[0];
 
-      return {
+      const formattedUsers = {
         user_id: user.id,
+        giftcard_id: lastReward?.giftCard?.id,
+        giftcard_name: lastReward?.giftCard?.name,
         user_name: user.username || 'N/A',
         recent_lead: recentLead ? recentLead.created_at : null,
         total_leads_sent: user._count.leads,
         total_gift_received: user._count.userRewards,
         last_gift_date: lastReward ? lastReward.sent_at : null,
       };
+
+      return formattedUsers;
     });
   }
 

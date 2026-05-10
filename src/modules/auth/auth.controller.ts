@@ -246,8 +246,7 @@ export class AuthController {
 
   // *update user
   // @ApiExcludeEndpoint()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
+
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     type: UpdateUserResDto,
@@ -257,6 +256,8 @@ export class AuthController {
     description: 'User updated successfully',
     type: UpdateUserResDto,
   })
+  @UseGuards(JwtAuthGuard)
+  @ApiAllAuth()
   @Patch('update/:id')
   async updateUser(
     @Req() req: Request,
@@ -435,7 +436,7 @@ export class AuthController {
   }
 
   // change password if user want to change the password
-  @ApiExcludeEndpoint()
+  // @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Change password' })
   @ApiBody({
     type: ChangePasswordDto,
@@ -444,7 +445,7 @@ export class AuthController {
     description: 'Password changed successfully',
     type: ChangePasswordDto,
   })
-  @ApiBearerAuth()
+  @ApiAllAuth()
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
@@ -452,14 +453,14 @@ export class AuthController {
     @Body() data: { email: string; old_password: string; new_password: string },
   ) {
     try {
-      // const email = data.email;
+      const email = data.email;
       const user_id = req.user.userId;
 
       const oldPassword = data.old_password;
       const newPassword = data.new_password;
-      // if (!email) {
-      //   throw new HttpException('Email not provided', HttpStatus.UNAUTHORIZED);
-      // }
+      if (!email) {
+        throw new HttpException('Email not provided', HttpStatus.UNAUTHORIZED);
+      }
       if (!oldPassword) {
         throw new HttpException(
           'Old password not provided',
@@ -473,7 +474,7 @@ export class AuthController {
         );
       }
       return await this.authService.changePassword({
-        // email: email,
+        email: email,
         user_id: user_id,
         oldPassword: oldPassword,
         newPassword: newPassword,

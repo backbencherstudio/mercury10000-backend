@@ -99,6 +99,39 @@ export class GetLeadsQueryDto {
   status?: string;
 }
 
+export class GetAllSeeUserQueryDto {
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 10;
+
+  @ApiPropertyOptional({ description: 'Search by name, lead_no, or address' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+
+// startdate and enddate
+  @ApiPropertyOptional({ description: 'Start date of the date range' })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiPropertyOptional({ description: 'End date of the date range' })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
+}
+
 class TradeResponseDto {
   @ApiProperty({ example: 'cmo8gpe1p0000m4tztacc664d' })
   id: string;
@@ -286,4 +319,23 @@ export class LeadActivityResponseDto {
 
   @ApiProperty({ type: [MonthlyActivityDto] })
   data: MonthlyActivityDto[];
+}
+
+
+export class LeadActivityMonthWiseQueryDto {
+  @ApiPropertyOptional({ 
+    description: 'Start date (ISO format)', 
+    example: '2026-01-01T00:00:00.000Z' 
+  })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  @ApiPropertyOptional({ 
+    description: 'End date (ISO format)', 
+    example: '2026-12-31T23:59:59.999Z' 
+  })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string;
 }

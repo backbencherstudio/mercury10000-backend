@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
+  IsBoolean,
   IsNotEmpty,
   IsString,
   MaxLength,
@@ -42,3 +43,5 @@ export class SendBulkRewardDto {
   })
   userIds: string[];
 }
+
+

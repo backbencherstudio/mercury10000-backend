@@ -209,10 +209,6 @@ export class UpdateUserResDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: '123456789' })
-  @MinLength(8, { message: 'Password should be minimum 8 characters' })
-  password: string;
-
   @ApiPropertyOptional({ example: 'Google' })
   @IsString()
   @IsOptional()

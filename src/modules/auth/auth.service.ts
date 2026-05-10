@@ -25,11 +25,25 @@ export class AuthService {
   ) {}
 
   //
+
   async me(userId: string) {
     try {
-      const user = await this.prisma.user.findFirst({
-        where: {
-          id: userId,
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          trades: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              leads: true, // Total Leads Sent
+              userRewards: true, // Total Gifts Received
+              connectionResponses: true, // Total Connection fulfilled By You
+            },
+          },
         },
       });
 
@@ -40,23 +54,28 @@ export class AuthService {
         };
       }
 
+      // Avatar URL processing
       if (user.avatar) {
         user['avatar_url'] = TajulStorage.url(
           appConfig().storageUrl.avatar + '/' + user.avatar,
         );
       }
 
-      if (user) {
-        return {
-          success: true,
-          data: user,
-        };
-      } else {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
+      // UI wise formatted data
+      const profileData = {
+        ...user,
+        total_leads_sent: user._count.leads,
+        total_gifts_received: user._count.userRewards,
+        total_connection_fulfilled: user._count.connectionResponses,
+      };
+
+      //  unnecessary _count object remove
+      delete profileData._count;
+
+      return {
+        success: true,
+        data: profileData,
+      };
     } catch (error) {
       return {
         success: false,
@@ -629,7 +648,7 @@ export class AuthService {
     }
   }
 
-  async changePassword({ user_id, oldPassword, newPassword }) {
+  async changePassword({ email, user_id, oldPassword, newPassword }) {
     try {
       const user = await this.userRepository.getUserDetails(user_id);
 
@@ -640,7 +659,7 @@ export class AuthService {
         });
         if (_isValidPassword) {
           await this.userRepository.changePassword({
-            email: user.email,
+            email: email,
             password: newPassword,
           });
 

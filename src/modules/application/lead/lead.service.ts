@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { LeadStatus, Prisma } from '@prisma/client';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
+import { NotificationRepository } from 'src/common/repository/notification/notification.repository';
 import appConfig from 'src/config/app.config';
 import {
   CreateLeadResDto,
@@ -20,7 +21,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class LeadService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private notificationRepo: NotificationRepository,
+  ) {}
 
   // create lead
   async createLead(
@@ -30,7 +34,7 @@ export class LeadService {
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { type: true },
+      select: { type: true, name: true, email: true },
     });
 
     if (!user || user.type !== 'USER') {
@@ -86,7 +90,39 @@ export class LeadService {
             files: true,
           },
         });
+        // 2. Fetch all Super Admins dynamically
+        const superAdmins = await this.prisma.user.findMany({
+          where: {
+            type: 'SUP_ADMIN', // Ensure this matches your Enum or String value in DB
+            status: 1, // Only active admins
+          },
+          select: { id: true },
+        });
 
+        // 3. Send notifications to each Super Admin
+        if (superAdmins.length > 0) {
+          const notificationPromises = superAdmins.map((admin) =>
+            this.notificationRepo
+              .createNotification({
+                sender_id: userId,
+                receiver_id: admin.id,
+                text: `${user.name || 'A user'} submitted a new lead: #${lead.lead_no}`,
+                type: 'new_lead_submitted',
+                entity_id: lead.id,
+                payload: {
+                  lead_no: lead.lead_no,
+                },
+              })
+              .catch((err) =>
+                console.error(
+                  `Failed to notify Admin ${admin.id}:`,
+                  err.message,
+                ),
+              ),
+          );
+
+          Promise.all(notificationPromises);
+        }
         return {
           success: true,
           message: 'Lead created successfully',
@@ -280,7 +316,7 @@ export class LeadService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999); // মাসের শেষ দিন
 
-    // 
+    //
     const leads = await this.prisma.lead.findMany({
       where: {
         user_id: userId,

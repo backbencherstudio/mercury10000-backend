@@ -92,8 +92,14 @@ export class ConnectionRequestAdminController {
   async assignUsers(
     @Param('id') id: string,
     @Body() dto: AssignUsersToConnectionDto,
+    @Req() req: any,
   ) {
-    return await this.connectionService.assignUsersToRequest(id, dto.user_ids);
+    const adminId = req.user.userId;
+    return await this.connectionService.assignUsersToRequest(
+      id,
+      dto.user_ids,
+      adminId,
+    );
   }
 
   @Get(':id')

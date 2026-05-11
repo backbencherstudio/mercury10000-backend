@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { UpdateNotificationDto } from 'src/modules/application/notification/dto/update-notification.dto';
 import { TajulStorage } from '../../../common/lib/Disk/TajulStorage';
 import appConfig from '../../../config/app.config';
@@ -80,22 +80,40 @@ export class NotificationService {
     }
   }
 
-  async updateSettings(userId: string, data: UpdateNotificationDto) {
-    const settings = await this.prisma.notification.upsert({
+  async getNotificationSettings(userId: string) {
+    const settings = await this.prisma.user.findUnique({
       where: { id: userId },
-      update: {
-        sign_of_disaster: data.sign_of_disaster,
-        latest_news: data.latest_news,
-        message_news: data.message_news,
-      },
-      create: {
-        id: userId,
-        sign_of_disaster: data.sign_of_disaster ?? true,
-        latest_news: data.latest_news ?? true,
-        message_news: data.message_news ?? true,
+      select: {
+        new_leads: true,
+        conection_req: true,
+        reward_system: true,
+        support_ticket: true,
       },
     });
 
+    if (!settings) {
+      throw new NotFoundException('User settings not found');
+    }
+
+    return {
+      success: true,
+      data: settings,
+    };
+  }
+
+  async updateSettings(userId: string, data: UpdateNotificationDto) {
+    console.log('udpadte settings', data);
+    const settings = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        new_leads: data.new_leads,
+        conection_req: data.conection_req,
+        reward_system: data.reward_system,
+        support_ticket: data.support_ticket,
+      },
+    });
+
+    // Formatting the success message dynamically
     const updatedFields = Object.keys(data)
       .map((key) => key.replace(/_/g, ' '))
       .join(', ');
@@ -109,6 +127,18 @@ export class NotificationService {
       message: successMessage,
       data: settings,
     };
+  }
+
+  private generateSuccessMessage(data: UpdateNotificationDto): string {
+    const keys = Object.keys(data);
+    if (keys.length === 0) return 'Settings updated successfully';
+
+    if (keys.length === 1) {
+      const field = keys[0].replace(/_/g, ' ');
+      return `${field.charAt(0).toUpperCase() + field.slice(1)} updated successfully`;
+    }
+
+    return 'Notification preferences updated successfully';
   }
 
   async remove(id: string, user_id: string) {

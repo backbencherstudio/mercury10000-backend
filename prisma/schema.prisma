@@ -90,6 +90,11 @@ model User {
   giftCards             giftCard[]
   userRewards           UserReward[]
 
+  new_leads      Boolean @default(true)
+  conection_req  Boolean @default(true)
+  reward_system  Boolean @default(true)
+  support_ticket Boolean @default(true)
+
   @@map("users")
 }
 
@@ -154,22 +159,26 @@ model NotificationEvent {
 }
 
 model Notification {
-  id                    String             @id @default(cuid())
-  created_at            DateTime           @default(now())
-  updated_at            DateTime           @default(now()) @updatedAt
+  id                    String    @id @default(cuid())
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @default(now()) @updatedAt
   deleted_at            DateTime?
   read_at               DateTime?
-  status                Int?               @default(1) @db.SmallInt
+  status                Int?      @default(1) @db.SmallInt
   sender_id             String?
   receiver_id           String?
   notification_event_id String?
   entity_id             String?
-  latest_news           Boolean            @default(true)
-  sign_of_disaster      Boolean            @default(true)
-  message_news          Boolean            @default(true)
-  notification_event    NotificationEvent? @relation(fields: [notification_event_id], references: [id])
-  receiver              User?              @relation("notificationReceiver", fields: [receiver_id], references: [id])
-  sender                User?              @relation("notificationSender", fields: [sender_id], references: [id])
+
+  // Notification type flags
+  latest_news      Boolean @default(true)
+  sign_of_disaster Boolean @default(true)
+  message_news     Boolean @default(true)
+
+  // Relation
+  notification_event NotificationEvent? @relation(fields: [notification_event_id], references: [id])
+  receiver           User?              @relation("notificationReceiver", fields: [receiver_id], references: [id])
+  sender             User?              @relation("notificationSender", fields: [sender_id], references: [id])
 }
 
 model video_calls {

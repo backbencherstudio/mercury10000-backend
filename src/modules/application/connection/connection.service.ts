@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConnectionStatus, Prisma } from '@prisma/client';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
+import { NotificationRepository } from 'src/common/repository/notification/notification.repository';
 import {
   CreateConnectionRequestDto,
   CreateConnectionResponseDto,
@@ -15,7 +16,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ConnectionRequestService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationRepo: NotificationRepository,
+  ) {}
 
   /**
    * Create Request (Only for SUP_ADMIN)
@@ -28,7 +32,7 @@ export class ConnectionRequestService {
     // 1. Auth Check
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { type: true },
+      select: { type: true, name: true, email: true },
     });
 
     if (!user || user.type !== 'SUP_ADMIN') {
@@ -80,6 +84,38 @@ export class ConnectionRequestService {
           files: true,
         },
       });
+
+      //notifications
+      // 2. Fetch all Super Admins dynamically
+      const superAdmins = await this.prisma.user.findMany({
+        where: {
+          type: 'SUP_ADMIN', // Ensure this matches your Enum or String value in DB
+          status: 1, // Only active admins
+        },
+        select: { id: true },
+      });
+
+      // 3. Send notifications to each Super Admin
+      if (superAdmins.length > 0) {
+        const notificationPromises = superAdmins.map((admin) =>
+          this.notificationRepo
+            .createNotification({
+              sender_id: userId,
+              receiver_id: admin.id,
+              text: `${user.name || 'A user'} submitted a new connection request: #${request.id}`,
+              type: 'new_connection_request_submitted',
+              entity_id: request.id,
+              payload: {
+                request_id: request.id,
+              },
+            })
+            .catch((err) =>
+              console.error(`Failed to notify Admin ${admin.id}:`, err.message),
+            ),
+        );
+
+        Promise.all(notificationPromises);
+      }
 
       return {
         success: true,
@@ -229,57 +265,62 @@ export class ConnectionRequestService {
     };
   }
 
-/**
- * User Specific Targeted Requests: 
- * নির্দিষ্ট ইউজারের জন্য পাঠানো রিকোয়েস্টগুলো দেখাবে যেখানে স্ট্যাটাস OPEN অথবা FULFILLED
- */
-async getAllRequestsForUser(userId: string) {
-  const requests = await this.prisma.connectionRequest.findMany({
-    where: {
-      targeted_users: {
-        some: {
-          id: userId,
+  /**
+   * User Specific Targeted Requests:
+   * specific user list open & fulfilled
+   */
+  async getAllRequestsForUser(userId: string) {
+    const requests = await this.prisma.connectionRequest.findMany({
+      where: {
+        targeted_users: {
+          some: {
+            id: userId,
+          },
+        },
+        status: {
+          in: ['OPEN', 'FULFILLED'],
         },
       },
-      status: {
-        in: ['OPEN', 'FULFILLED'],
+      include: {
+        trade: {
+          select: { name: true },
+        },
+        responses: {
+          where: { user_id: userId },
+          select: { id: true },
+        },
       },
-    },
-    include: {
-      trade: {
-        select: { name: true },
-      },
-      responses: {
-        where: { user_id: userId },
-        select: { id: true },
-      },
-    },
-    orderBy: { created_at: 'desc' },
-  });
+      orderBy: { created_at: 'desc' },
+    });
 
-  // UI ফরম্যাটিং
-  const data = requests.map((req) => ({
-    id: req.id,
-    trade: req.trade.name,
-    location: req.location,
-    city: req.city,
-    description: req.description,
-    status: req.status,
-    time_ago: req.created_at,
-    // ইউজার কি অলরেডি রেসপন্স সাবমিট করেছে?
-    is_submitted: req.responses.length > 0,
-  }));
+    // UI ফরম্যাটিং
+    const data = requests.map((req) => ({
+      id: req.id,
+      trade: req.trade.name,
+      location: req.location,
+      city: req.city,
+      description: req.description,
+      status: req.status,
+      time_ago: req.created_at,
+      // ইউজার কি অলরেডি রেসপন্স সাবমিট করেছে?
+      is_submitted: req.responses.length > 0,
+    }));
 
-  return {
-    success: true,
-    count: data.length,
-    data,
-  };
-}
+    return {
+      success: true,
+      count: data.length,
+      data,
+    };
+  }
 
-  async assignUsersToRequest(requestId: string, userIds: string[]) {
+  async assignUsersToRequest(
+    requestId: string,
+    userIds: string[],
+    adminId: string,
+  ) {
     const request = await this.prisma.connectionRequest.findUnique({
       where: { id: requestId },
+      include: { trade: true },
     });
 
     if (!request) {
@@ -302,18 +343,37 @@ async getAllRequestsForUser(userId: string) {
             select: {
               id: true,
               name: true,
-              phone_number: true,
-              email: true,
+              fcm_token: true,
             },
           },
         },
       });
 
-      //  (Optional) Notification Logic
+      // Send notifications to each assigned user
+      if (userIds.length > 0) {
+        const notificationPromises = userIds.map((id) =>
+          this.notificationRepo
+            .createNotification({
+              sender_id: adminId,
+              receiver_id: id,
+              text: `You have been assigned to a new connection request: #${updatedRequest.id} for ${updatedRequest.trade?.name || 'Trade'}`,
+              type: 'conection_req',
+              entity_id: updatedRequest.id,
+              payload: {
+                request_id: updatedRequest.id,
+              },
+            })
+            .catch((err) =>
+              console.error(`Failed to notify User ${id}:`, err.message),
+            ),
+        );
+
+        await Promise.all(notificationPromises);
+      }
 
       return {
         success: true,
-        message: `${userIds.length} users have been successfully assigned to this connection request.`,
+        message: `${updatedRequest.targeted_users.length} users have been successfully assigned to this connection request.`,
         data: updatedRequest,
       };
     } catch (error) {

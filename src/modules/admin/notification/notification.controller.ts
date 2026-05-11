@@ -10,26 +10,20 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import {
   NotificationListResponse,
   UpdateNotificationDtoRes,
 } from 'src/modules/admin/notification/dto/create-notification.dto';
 import { UpdateNotificationDto } from 'src/modules/application/notification/dto/update-notification.dto';
+import { ApiAllAuth } from 'src/modules/auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../../../modules/auth/guards/jwt-auth.guard';
 import { NotificationService } from './notification.service';
 
-@ApiBearerAuth()
 @ApiTags('Notification')
+@ApiAllAuth()
 @UseGuards(JwtAuthGuard)
-// @Roles(Role.ADMIN)
 @Controller('admin/notification')
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
@@ -43,7 +37,7 @@ export class NotificationController {
   })
   @Get()
   async findAll(@Req() req: Request) {
-const user_id = req.user.userId;
+    const user_id = req.user.userId;
     try {
       const notification = await this.notificationService.findAll(user_id);
 
@@ -56,6 +50,19 @@ const user_id = req.user.userId;
     }
   }
 
+  @ApiOperation({ summary: 'Get notification settings ' })
+  @HttpCode(HttpStatus.OK)
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Notification settings fetched successfully',
+    type: UpdateNotificationDtoRes,
+  })
+  @Get('notification-settings')
+  async getNotificationSettings(@Req() req: Request) {
+    const userId = req.user.userId;
+    return this.notificationService.getNotificationSettings(userId);
+  }
+
   @Patch('update-settings')
   @HttpCode(HttpStatus.OK)
   @ApiBody({ type: UpdateNotificationDtoRes })
@@ -66,6 +73,7 @@ const user_id = req.user.userId;
   })
   async update(@Body() updateDto: UpdateNotificationDto, @Req() req: any) {
     const userId = req.user.userId;
+    console.log('update settings', updateDto);
     return this.notificationService.updateSettings(userId, updateDto);
   }
 

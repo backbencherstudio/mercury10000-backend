@@ -27,32 +27,29 @@ export class NotificationRepository implements OnModuleInit {
     }
   }
 
-  async createNotification(payload: {
+  async createNotification(data: {
     sender_id: string;
     receiver_id: string;
     text: string;
     type: string;
     entity_id: string;
+    payload?: Record<string, any>;
   }) {
-    const { sender_id, receiver_id, text, type, entity_id } = payload;
-
-    console.log('--- 🆕 New Notification Request ---');
-    console.log('Payload:', JSON.stringify(payload, null, 2));
+    const { sender_id, receiver_id, text, type, entity_id, payload } = data;
 
     try {
-      // 1. Notification Event finding
+      // 1. Find or create the Notification Event
       let notificationEvent = await this.prisma.notificationEvent.findFirst({
         where: { type, text },
       });
 
       if (!notificationEvent) {
-        console.log(`📝 Creating new NotificationEvent for type: ${type}`);
         notificationEvent = await this.prisma.notificationEvent.create({
           data: { type, text },
         });
       }
 
-      // 2. database save notification
+      // 2. Save notification to database (Always saved for all user types)
       const notification = await this.prisma.notification.create({
         data: {
           sender_id,
@@ -68,46 +65,94 @@ export class NotificationRepository implements OnModuleInit {
         },
       });
 
-      console.log('✅ Notification saved to DB:', notification.id);
+      // 3. Fetch receiver data including type and notification preferences
+      const receiver = await this.prisma.user.findUnique({
+        where: { id: receiver_id },
+        select: {
+          id: true,
+          type: true, // User role/type
+          fcm_token: true,
+          new_leads: true,
+          conection_req: true,
+          reward_system: true,
+          support_ticket: true,
+        },
+      });
 
-      // ৩. FCM sending (Background process )
-      this.sendFCM(receiver_id, type, text, entity_id);
+      if (receiver && receiver.fcm_token) {
+        let shouldSendPush = true;
+
+        // Apply preference filtering ONLY for SUP_ADMIN
+        if (receiver.type === 'SUP_ADMIN') {
+          shouldSendPush = this.checkPreference(type, receiver);
+        }
+
+        // 4. Send Push Notification if allowed
+        if (shouldSendPush) {
+          await this.sendFCM(
+            receiver_id,
+            type,
+            text,
+            entity_id,
+            payload,
+            receiver.fcm_token,
+          );
+        }
+      }
 
       return notification;
     } catch (error) {
-      console.error('❌ Database/Logic Error:', error);
+      console.error('❌ Notification Error:', error);
       throw new InternalServerErrorException('Failed to process notification');
     }
   }
 
+  /**
+   * Checks if the specific notification type is enabled in user preferences
+   */
+  private checkPreference(type: string, user: any): boolean {
+    const typeMap: Record<string, boolean> = {
+      new_leads: user.new_leads,
+      conection_req: user.conection_req,
+      reward_system: user.reward_system,
+      support_ticket: user.support_ticket,
+    };
+
+    // Returns preference value or true by default if type is not mapped
+    return typeMap[type] ?? true;
+  }
+
+  /**
+   * Handles the actual FCM sending logic
+   */
   private async sendFCM(
     receiverId: string,
     type: string,
     text: string,
     entityId: string,
+    payload: Record<string, any> | undefined,
+    token: string,
   ) {
     console.log(`🔍 Attempting to send FCM to User: ${receiverId}`);
 
-    if (!admin.apps.length) {
-      console.error('⚠️ FCM skipped: Firebase Admin not initialized.');
+    if (!admin.apps.length || !token) {
+      console.error('⚠️ FCM skipped: Firebase not initialized or no token.');
       return;
     }
 
     try {
-      // user and token finding
-      const user = await this.prisma.user.findUnique({
-        where: { id: receiverId },
-        select: { fcm_token: true },
-      });
-
-      if (!user?.fcm_token) {
-        console.warn(`⚠️ FCM skipped: No token found for user ${receiverId}`);
-        return;
+      // Stringify payload values for FCM data (FCM data requires string values)
+      const stringifiedPayload: Record<string, string> = {};
+      if (payload) {
+        for (const [key, value] of Object.entries(payload)) {
+          if (value !== undefined && value !== null) {
+            stringifiedPayload[key] = String(value);
+          }
+        }
       }
 
-      // FCM message payload  making
       const message: admin.messaging.Message = {
-        token: user.fcm_token,
+        token: token,
         notification: {
           title: this.formatTitle(type),
           body: text,
@@ -116,6 +161,7 @@ export class NotificationRepository implements OnModuleInit {
           entity_id: String(entityId),
           type: String(type),
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
+          ...stringifiedPayload,
         },
         android: {
           priority: 'high',
@@ -131,20 +177,17 @@ export class NotificationRepository implements OnModuleInit {
         },
       };
 
-      console.log('📡 Sending FCM Message Payload');
-
       const response = await admin.messaging().send(message);
       console.log('🎉 FCM Sent Successfully! MessageID:', response);
     } catch (fcmError: any) {
       console.error('❌ FCM Send Error:', fcmError.message);
 
-      //  token invalid then token remove from database
+      // Handle invalid or expired tokens by removing them from the DB
       const errorCode = fcmError.code;
       if (
         errorCode === 'messaging/registration-token-not-registered' ||
         errorCode === 'messaging/invalid-registration-token'
       ) {
-        console.warn(`🗑️ Removing invalid FCM token for User: ${receiverId}`);
         try {
           await this.prisma.user.update({
             where: { id: receiverId },
@@ -158,6 +201,9 @@ export class NotificationRepository implements OnModuleInit {
     }
   }
 
+  /**
+   * Formats the notification type string into a readable Title
+   */
   private formatTitle(type: string): string {
     return type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   }

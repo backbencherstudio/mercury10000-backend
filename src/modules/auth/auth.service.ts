@@ -97,17 +97,11 @@ export class AuthService {
           `[Register] Attempt to register with existing email: ${data.email}`,
         );
         return {
-          success: false, // consistency বজায় রাখার জন্য success: false দিন
+          success: false,
           statusCode: 401,
           message: 'Email already exist',
         };
       }
-
-      // 2. Create User via Repository
-      console.log('[Register] Creating user with data:', {
-        ...data,
-        password: '***',
-      });
 
       const user = await this.userRepository.createUser({
         ...data,

@@ -79,17 +79,20 @@ export class NotificationListResponse {
   data: NotificationResponseDto[];
 }
 
-
 export class UpdateNotificationDtoRes {
   @ApiProperty({ default: true })
   @IsBoolean()
-  sign_of_disaster: boolean;
+  new_leads: boolean;
 
   @ApiProperty({ default: true })
   @IsBoolean()
-  latest_news: boolean;
+  conection_req: boolean;
 
   @ApiProperty({ default: true })
   @IsBoolean()
-  message_news: boolean;
+  reward_system: boolean;
+
+  @ApiProperty({ default: true })
+  @IsBoolean()
+  support_ticket: boolean;
 }

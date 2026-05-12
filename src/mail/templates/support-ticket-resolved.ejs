@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .header { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #28a745; }
+        .details { margin-bottom: 20px; }
+        .footer { font-size: 12px; color: #777; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Your Support Request Has Been Resolved</div>
+        <div class="details">
+            <p>Hello <%= name %>,</p>
+            <p>We are pleased to inform you that your support ticket <strong>#<%= ticketId %></strong> has been marked as resolved.</p>
+            <p><strong>Resolution Date:</strong> <%= date %></p>
+            <p>If you have further questions or if the issue persists, please feel free to open a new ticket or contact us directly.</p>
+            <p>Thank you for your patience.</p>
+        </div>
+        <div class="footer">
+            Best regards,<br>
+            The Mercury 10000 Support Team
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .header { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: #007bff; }
+        .details { margin-bottom: 20px; }
+        .footer { font-size: 12px; color: #777; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">New Support Ticket Created</div>
+        <div class="details">
+            <p>Hello <%= name %>,</p>
+            <p>A new support ticket has been created in the system.</p>
+            <ul>
+                <li><strong>Ticket ID:</strong> #<%= ticketId %></li>
+                <li><strong>Date:</strong> <%= date %></li>
+            </ul>
+            <p>Please log in to the admin panel to review and address this ticket.</p>
+        </div>
+        <div class="footer">
+            This is an automated notification from Mercury 10000.
+        </div>
+    </div>
+</body>
+</html>

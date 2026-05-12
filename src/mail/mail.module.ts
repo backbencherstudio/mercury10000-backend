@@ -15,9 +15,7 @@ import { MailProcessor } from './processors/mail.processor';
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
         transport: {
-          host: config.get('MAIL_HOST'),
-          port: config.get<number>('MAIL_PORT'),
-          secure: false,
+          service: 'gmail',
           auth: {
             user: config.get('MAIL_USERNAME'),
             pass: config.get('MAIL_PASSWORD'),
@@ -28,7 +26,7 @@ import { MailProcessor } from './processors/mail.processor';
         },
         template: {
           // dist ফোল্ডার থেকে টেমপ্লেট লোড করার জন্য path.join ব্যবহার করা সেফ
-          dir: join(process.cwd(), 'dist', 'mail', 'templates'),
+          dir: join(__dirname, 'templates'),
           adapter: new EjsAdapter(),
           options: {
             strict: false,

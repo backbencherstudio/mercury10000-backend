@@ -1,4 +1,3 @@
-import { MailerService } from '@nestjs-modules/mailer';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { SupportStatus } from '@prisma/client';
 import {
@@ -11,7 +10,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class SupportService {
   constructor(
     private prisma: PrismaService,
-    private mailerService: MailerService,
   ) {}
 
   async createTicket(userId: string) {
@@ -28,6 +26,7 @@ export class SupportService {
       },
       // include: { user: true },
     });
+
 
     return {
       success: true,
@@ -120,39 +119,8 @@ export class SupportService {
     });
 
     //
-    if (dto.status === SupportStatus.RESOLVED && ticket.user?.email) {
-      try {
-        await this.sendResolutionEmail({
-          email: ticket.user.email,
-          name: ticket.user.name || 'Valued User',
-          ticketId: ticket.id,
-        });
-      } catch (error) {
-        //
-        console.error(`Email sending failed for ticket ${id}:`, error);
-      }
-    }
 
     return ticket;
   }
 
-  // Private method to handle email logic
-  private async sendResolutionEmail(data: {
-    email: string;
-    name: string;
-    ticketId: string;
-  }) {
-    const { email, name, ticketId } = data;
-
-    await this.mailerService.sendMail({
-      to: email,
-      subject: `Support Request Resolved - #${ticketId}`,
-
-      context: {
-        name: name,
-        ticketId: ticketId,
-        date: new Date().toLocaleDateString(),
-      },
-    });
-  }
 }

@@ -1,13 +1,14 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreateGiftcardDto,
   SendBulkRewardDto,
 } from './dto/create-giftcard.dto';
+import { NotificationRepository } from 'src/common/repository/notification/notification.repository';
 
 @Injectable()
 export class GiftcardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,private readonly notificationRepo: NotificationRepository) {}
 
   async create(createGiftcardDto: CreateGiftcardDto, userId: string) {
     try {
@@ -35,7 +36,7 @@ export class GiftcardService {
     }
   }
 
-  async sendBulkReward(dto: SendBulkRewardDto) {
+async sendBulkReward(dto: SendBulkRewardDto, senderId: string) {
     const { giftCardId, userIds } = dto;
 
     const rewardData = userIds.map((id) => ({
@@ -47,6 +48,33 @@ export class GiftcardService {
       data: rewardData,
       skipDuplicates: true,
     });
+
+
+    const gift = await this.prisma.giftCard.findUnique({
+      where: { id: giftCardId },
+      select: { id: true, name: true }
+    });
+
+    if (!gift) {
+       throw new NotFoundException('Gift card not found');
+    }
+
+
+    if (userIds.length > 0) {
+      const notificationPromises = userIds.map((id) =>
+        this.notificationRepo.createNotification({
+          sender_id: senderId,
+          receiver_id: id,
+          text: `You received a new gift card: ${gift.name}`,
+          type: 'new_giftcard_received',
+          entity_id: gift.id,
+          payload: { giftcard_id: gift.id },
+        }),
+      );
+
+      // সব নোটিফিকেশন প্যারালাল এক্সেকিউশন নিশ্চিত করা
+      await Promise.all(notificationPromises);
+    }
 
     return {
       status: true,
@@ -65,6 +93,50 @@ export class GiftcardService {
       message: 'Giftcards retrieved successfully',
     };
   }
+
+async getUserWiseGift(userId: string) {
+  const giftcards = await this.prisma.userReward.findMany({
+    where: {
+      user_id: userId,
+    },
+    orderBy: { 
+      sent_at: 'desc' 
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true, 
+        },
+      },
+      giftCard: {
+        select: {
+          id: true,
+          name: true,
+          created_at: true,
+        },
+      },
+    },
+  });
+
+  // findMany empty array return kore jodi data na thake
+  if (!giftcards || giftcards.length === 0) {
+    return {
+      status: false,
+      data: [],
+      message: 'User wise giftcards not found',
+    };
+  }
+
+
+
+  return {
+    status: true,
+    data: giftcards,
+    message: 'User wise giftcards retrieved successfully',
+  };
+}
 
   async getAllGiftStatus() {
     const users = await this.prisma.user.findMany({

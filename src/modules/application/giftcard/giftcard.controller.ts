@@ -5,18 +5,11 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  Patch,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import {
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ApiAllAuth } from 'src/modules/auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import {
@@ -46,8 +39,9 @@ export class GiftcardController {
   @ApiOperation({ summary: 'Send selected gift to multiple users' })
   @ApiBody({ type: SendBulkRewardDto })
   @ApiResponse({ status: 200, description: 'Users rewarded successfully.' })
-  async sendReward(@Body() dto: SendBulkRewardDto) {
-    return await this.giftcardService.sendBulkReward(dto);
+  async sendReward(@Body() dto: SendBulkRewardDto, @Req() req: any) {
+    const userId = req.user.userId;
+    return await this.giftcardService.sendBulkReward(dto, userId);
   }
 
   @Get('all-gift-status')
@@ -64,7 +58,14 @@ export class GiftcardController {
     return await this.giftcardService.findAll();
   }
 
-
+  //user wise gift
+  @Get('user-wise-gift')
+  @ApiOperation({ summary: 'Get all user wise giftcards' })
+  @ApiResponse({ status: 200, description: 'Return all user wise giftcards.' })
+  async getUserWiseGift(@Req() req: any) {
+    const userId = req.user.userId;
+    return await this.giftcardService.getUserWiseGift(userId);
+  }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific giftcard by ID' })

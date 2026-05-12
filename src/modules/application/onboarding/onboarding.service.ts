@@ -22,17 +22,6 @@ export class OnboardingService {
       };
     }
 
-    // const formatted = {
-    //   id: settings.id,
-    //   tutorial_video_url: settings.tutorial_video?.path
-    //     ? `${TajulStorage.url(appConfig().storageUrl.video)}${settings.tutorial_video?.path}`
-    //     : null,
-    //   meeting_video_url: settings.meeting_video?.path
-    //     ? `${TajulStorage.url(appConfig().storageUrl.video)}${settings.meeting_video?.path}`
-    //     : null,
-    //   tutorial_unskippable_duration: settings.tutorial_unskippable_duration,
-    //   meeting_unskippable_duration: settings.meeting_unskippable_duration,
-    // };
 
     const formatted = settings.map((setting) => ({
       id: setting.id,

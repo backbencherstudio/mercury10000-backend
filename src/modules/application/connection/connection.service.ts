@@ -318,6 +318,11 @@ export class ConnectionRequestService {
     userIds: string[],
     adminId: string,
   ) {
+    //admin user
+    const adminUser = await this.prisma.user.findUnique({
+      where: { id: adminId },
+      select: { name: true },
+    });
     const request = await this.prisma.connectionRequest.findUnique({
       where: { id: requestId },
       include: { trade: true },
@@ -351,13 +356,15 @@ export class ConnectionRequestService {
 
       // Send notifications to each assigned user
       if (userIds.length > 0) {
+        const senderName = adminUser?.name || 'Admin';
+        const tradeName = updatedRequest.trade?.name || 'Trade';
         const notificationPromises = userIds.map((id) =>
           this.notificationRepo
             .createNotification({
               sender_id: adminId,
               receiver_id: id,
-              text: `You have been assigned to a new connection request: #${updatedRequest.id} for ${updatedRequest.trade?.name || 'Trade'}`,
-              type: 'conection_req',
+              text: `${senderName} has sent a new connection request for ${tradeName}.`,
+              type: 'Connection Request',
               entity_id: updatedRequest.id,
               payload: {
                 request_id: updatedRequest.id,

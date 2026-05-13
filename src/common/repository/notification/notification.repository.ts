@@ -4,11 +4,15 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import * as admin from 'firebase-admin';
+import { NotificationGateway } from 'src/modules/application/notification/notification.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class NotificationRepository implements OnModuleInit {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly wsGateway: NotificationGateway,
+  ) {}
 
   onModuleInit() {
     if (!admin.apps.length) {
@@ -49,7 +53,7 @@ export class NotificationRepository implements OnModuleInit {
         });
       }
 
-      // 2. Save notification to database (Always saved for all user types)
+      // 2. Save notification to database
       const notification = await this.prisma.notification.create({
         data: {
           sender_id,
@@ -65,12 +69,24 @@ export class NotificationRepository implements OnModuleInit {
         },
       });
 
-      // 3. Fetch receiver data including type and notification preferences
+      // 🔥 3. Real-time Socket Emission
+      // Database-e save hobar por ekhanei socket emit korben jate user instant UI update pay
+      this.wsGateway.sendToUser(receiver_id, 'notification', {
+        id: notification.id,
+        text,
+        type,
+        entity_id,
+        sender_id,
+        created_at: notification.created_at,
+        payload,
+      });
+
+      // 4. Fetch receiver data for Push Notifications & Preferences
       const receiver = await this.prisma.user.findUnique({
         where: { id: receiver_id },
         select: {
           id: true,
-          type: true, // User role/type
+          type: true,
           fcm_token: true,
           new_leads: true,
           conection_req: true,
@@ -79,24 +95,24 @@ export class NotificationRepository implements OnModuleInit {
         },
       });
 
+      // 5. Background Push Notification (FCM)
       if (receiver && receiver.fcm_token) {
         let shouldSendPush = true;
 
-        // Apply preference filtering ONLY for SUP_ADMIN
         if (receiver.type === 'SUP_ADMIN') {
           shouldSendPush = this.checkPreference(type, receiver);
         }
 
-        // 4. Send Push Notification if allowed
         if (shouldSendPush) {
-          await this.sendFCM(
+          // Promise await na koreo pathano jay jate response slow na hoy
+          this.sendFCM(
             receiver_id,
             type,
             text,
             entity_id,
             payload,
             receiver.fcm_token,
-          );
+          ).catch((err) => console.error('FCM Background Error:', err));
         }
       }
 

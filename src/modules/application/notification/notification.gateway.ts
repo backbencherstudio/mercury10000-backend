@@ -1,25 +1,22 @@
 import {
   WebSocketGateway,
-  SubscribeMessage,
-  MessageBody,
+  WebSocketServer,
   OnGatewayInit,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { OnModuleInit } from '@nestjs/common';
+import { OnModuleInit, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
 import { NotificationService } from './notification.service';
-import { CreateNotificationDto } from './dto/create-notification.dto';
-import { UpdateNotificationDto } from './dto/update-notification.dto';
 import appConfig from '../../../config/app.config';
 
-@WebSocketGateway({
+@WebSocketGateway(6009, {
   cors: {
     origin: '*',
   },
 })
+@Injectable()
 export class NotificationGateway
   implements
     OnGatewayInit,
@@ -33,102 +30,71 @@ export class NotificationGateway
   private redisPubClient: Redis;
   private redisSubClient: Redis;
 
-  // Map to store connected clients
-  private clients = new Map<string, string>(); // userId -> socketId
-
   constructor(private readonly notificationService: NotificationService) {}
 
   onModuleInit() {
-    this.redisPubClient = new Redis({
+    const redisOptions = {
       host: appConfig().redis.host,
       port: Number(appConfig().redis.port),
       password: appConfig().redis.password,
+    };
+
+    this.redisPubClient = new Redis(redisOptions);
+    this.redisSubClient = new Redis(redisOptions);
+
+    // Redis theke notification channel-e subscribe kora
+    this.redisSubClient.subscribe('notification_channel', (err) => {
+      if (err) {
+        console.error('❌ Redis Subscription Error:', err.message);
+      }
     });
 
-    this.redisSubClient = new Redis({
-      host: appConfig().redis.host,
-      port: Number(appConfig().redis.port),
-      password: appConfig().redis.password,
-    });
-
-    this.redisSubClient.subscribe('notification', (err, message: string) => {
-      const data = JSON.parse(message);
-      this.server.emit('receiveNotification', data);
+    // Redis theke message receive hole targeted user-ke emit kora
+    this.redisSubClient.on('message', (channel, message) => {
+      if (channel === 'notification_channel') {
+        const data = JSON.parse(message);
+        const { receiver_id, event_name, ...rest } = data;
+        
+        // targeted user-er unique room-e message emit kora
+        this.server.to(`user_${receiver_id}`).emit(event_name || 'new_notification', rest);
+      }
     });
   }
 
   afterInit(server: Server) {
-    console.log('Websocket server started');
+    console.log('🚀 WebSocket server started on port 6009');
   }
 
-  async handleConnection(client: Socket, ...args: any[]) {
-    // console.log('new connection!', client.id);
-    const userId = client.handshake.query.userId as string; // User ID passed as query parameter
+  handleConnection(client: Socket) {
+    const userId = client.handshake.query.userId as string;
     if (userId) {
-      this.clients.set(userId, client.id);
-      console.log(`User ${userId} connected with socket ${client.id}`);
+      // User-ke tar unique room-e join korano holo
+      client.join(`user_${userId}`);
+      console.log(`🔌 User ${userId} connected and joined room: user_${userId}`);
     }
   }
 
   handleDisconnect(client: Socket) {
-    // console.log('client disconnected!', client.id);
-    const userId = [...this.clients.entries()].find(
-      ([, socketId]) => socketId === client.id,
-    )?.[0];
-    if (userId) {
-      this.clients.delete(userId);
-      console.log(`User ${userId} disconnected`);
-    }
+    console.log(`❌ Client disconnected: ${client.id}`);
   }
 
-  // @SubscribeMessage('joinRoom')
-  // handleRoomJoin(client: Socket, room: string) {
-  //   client.join(room);
-  //   client.emit('joinedRoom', room);
-  // }
+  /**
+   * Repository theke notification pathanor method
+   * @param receiverId Target user id
+   * @param eventName Event name (e.g., 'new_notification')
+   * @param data Payload data
+   */
+  async sendToUser(receiverId: string, eventName: string, data: any) {
+    const payload = {
+      receiver_id: receiverId,
+      event_name: eventName,
+      ...data,
+    };
 
-  @SubscribeMessage('sendNotification')
-  async handleNotification(@MessageBody() data: any) {
-    console.log(`Received notification: ${JSON.stringify(data)}`);
-    // Broadcast notification to all clients
-    // this.server.emit('receiveNotification', data);
-
-    // Emit notification to specific client
-    const targetSocketId = this.clients.get(data.userId);
-    if (targetSocketId) {
-      await this.redisPubClient.publish('notification', JSON.stringify(data));
-
-      // console.log(`Notification sent to user ${data.userId}`);
-    } else {
-      // console.log(`User ${data.userId} not connected`);
-    }
-  }
-
-  @SubscribeMessage('createNotification')
-  create(@MessageBody() createNotificationDto: CreateNotificationDto) {
-    return this.notificationService.create(createNotificationDto);
-  }
-
-  @SubscribeMessage('findAllNotification')
-  findAll() {
-    return this.notificationService.findAll();
-  }
-
-  @SubscribeMessage('findOneNotification')
-  findOne(@MessageBody() id: number) {
-    return this.notificationService.findOne(id);
-  }
-
-  // @SubscribeMessage('updateNotification')
-  // update(@MessageBody() updateNotificationDto: UpdateNotificationDto) {
-  //   return this.notificationService.update(
-  //     updateNotificationDto.id,
-  //     updateNotificationDto,
-  //   );
-  // }
-
-  @SubscribeMessage('removeNotification')
-  remove(@MessageBody() id: number) {
-    return this.notificationService.remove(id);
+    // Redis-e publish kora hocche jate shob instance-e pawa jay
+    await this.redisPubClient.publish(
+      'notification_channel',
+      JSON.stringify(payload),
+    );
   }
 }

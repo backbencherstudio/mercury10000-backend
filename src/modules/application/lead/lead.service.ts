@@ -1,8 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
-  HttpException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { LeadStatus, Prisma } from '@prisma/client';
@@ -21,6 +21,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class LeadService {
+  private readonly logger = new Logger('LeadService');
+
   constructor(
     private readonly prisma: PrismaService,
     private notificationRepo: NotificationRepository,
@@ -41,15 +43,6 @@ export class LeadService {
       throw new ForbiddenException('Only users can create leads.');
     }
 
-    if (dto.trade_id) {
-      const tradeExists = await this.prisma.trade.findUnique({
-        where: { id: dto.trade_id },
-      });
-      if (!tradeExists) {
-        throw new BadRequestException('The provided trade_id does not exist.');
-      }
-    }
-
     let fileName = '';
     const folder = 'leads';
     const file = files && files.length > 0 ? files[0] : null;
@@ -57,15 +50,14 @@ export class LeadService {
     try {
       if (file) {
         fileName = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
-        const fullPath = `${folder}/${fileName}`;
-        await TajulStorage.put(fullPath, file.buffer);
+        await TajulStorage.put(`${folder}/${fileName}`, file.buffer);
       }
 
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const count = await tx.lead.count();
         const next_lead_no = (count + 100).toString();
 
-        const lead = await tx.lead.create({
+        return await tx.lead.create({
           data: {
             lead_no: next_lead_no,
             name: dto.name,
@@ -85,65 +77,56 @@ export class LeadService {
                 }
               : undefined,
           },
-          include: {
-            trade: true,
-            files: true,
-          },
+          include: { trade: true, files: true },
         });
-        // 2. Fetch all Super Admins dynamically
-        const superAdmins = await this.prisma.user.findMany({
-          where: {
-            type: 'SUP_ADMIN', // Ensure this matches your Enum or String value in DB
-            status: 1, // Only active admins
-          },
-          select: { id: true },
-        });
-
-        // 3. Send notifications to each Super Admin
-        if (superAdmins.length > 0) {
-          const notificationPromises = superAdmins.map((admin) =>
-            this.notificationRepo
-              .createNotification({
-                sender_id: userId,
-                receiver_id: admin.id,
-                text: `${user.name || 'A user'} submitted a new lead: #${lead.lead_no}`,
-                type: 'new_lead_submitted',
-                entity_id: lead.id,
-                payload: {
-                  lead_no: lead.lead_no,
-                },
-              })
-              .catch((err) =>
-                console.error(
-                  `Failed to notify Admin ${admin.id}:`,
-                  err.message,
-                ),
-              ),
-          );
-
-          Promise.all(notificationPromises);
-        }
-        return {
-          success: true,
-          message: 'Lead created successfully',
-          data: lead,
-        };
       });
-    } catch (error) {
-      if (fileName) {
-        const fullPath = `${folder}/${fileName}`;
-        await TajulStorage.delete(fullPath).catch(() => null);
-      }
-      if (error.code === 'P2002') {
-        throw new BadRequestException(
-          'Lead number conflict or trade already assigned.',
-        );
-      }
 
-      if (error instanceof HttpException) {
-        throw error;
-      }
+      // 🔥 ২. ট্রানজ্যাকশন সফল হবার পর ব্যাকগ্রাউন্ডে নোটিফিকেশন পাঠান
+      // এটি অ্যাওয়েট করার দরকার নেই যাতে ইউজার দ্রুত রেসপন্স পায়
+      this.sendLeadNotifications(userId, user.name, result);
+
+      return {
+        success: true,
+        message: 'Lead created successfully',
+        data: result,
+      };
+    } catch (error) {
+      if (fileName)
+        await TajulStorage.delete(`${folder}/${fileName}`).catch(() => null);
+      this.logger.error(`Lead Creation Failed: ${error.message}`);
       throw new BadRequestException(error.message || 'Lead creation failed.');
+    }
+  }
+
+  // আলাদা হেল্পার ফাংশন
+  private async sendLeadNotifications(
+    userId: string,
+    userName: string,
+    lead: any,
+  ) {
+    try {
+      const superAdmins = await this.prisma.user.findMany({
+        where: { type: 'SUP_ADMIN', status: 1 },
+        select: { id: true },
+      });
+
+      if (superAdmins.length > 0) {
+        await Promise.all(
+          superAdmins.map((admin) =>
+            this.notificationRepo.createNotification({
+              sender_id: userId,
+              receiver_id: admin.id,
+              text: `${userName || 'A user'} submitted a new lead: #${lead.lead_no}`,
+              type: 'new_lead_submitted',
+              entity_id: lead.id,
+              payload: { lead_no: lead.lead_no },
+            }),
+          ),
+        );
+        this.logger.log(`✅ Notifications sent for Lead #${lead.lead_no}`);
+      }
+    } catch (err) {
+      this.logger.error(`❌ Background Notification Error: ${err.message}`);
     }
   }
 

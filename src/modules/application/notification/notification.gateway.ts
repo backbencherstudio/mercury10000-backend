@@ -1,20 +1,27 @@
 import {
-  WebSocketGateway,
-  WebSocketServer,
-  OnGatewayInit,
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
+import {
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
+  WebSocketGateway,
+  WebSocketServer,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { OnModuleInit, Injectable } from '@nestjs/common';
 import Redis from 'ioredis';
-import { NotificationService } from './notification.service';
-import appConfig from '../../../config/app.config';
+import { Server, Socket } from 'socket.io';
+import { PrismaService } from 'src/prisma/prisma.service';
 
-@WebSocketGateway(6009, {
+@WebSocketGateway({
+  // Using a wildcard for origin; consider specifying your frontend URL in production
   cors: {
     origin: '*',
+    credentials: true,
   },
+  transports: ['websocket'], // Force WebSocket transport for better performance and stability
 })
 @Injectable()
 export class NotificationGateway
@@ -22,79 +29,185 @@ export class NotificationGateway
     OnGatewayInit,
     OnGatewayConnection,
     OnGatewayDisconnect,
-    OnModuleInit
+    OnModuleInit,
+    OnModuleDestroy
 {
-  @WebSocketServer()
-  server: Server;
+  @WebSocketServer() server: Server;
+  private readonly logger = new Logger(NotificationGateway.name);
+  private redisSub: Redis;
 
-  private redisPubClient: Redis;
-  private redisSubClient: Redis;
+  constructor(private readonly prisma: PrismaService) {}
 
-  constructor(private readonly notificationService: NotificationService) {}
-
+  /**
+   * Lifecycle hook: Initialize Redis connection when the module starts
+   */
   onModuleInit() {
-    const redisOptions = {
-      host: appConfig().redis.host,
-      port: Number(appConfig().redis.port),
-      password: appConfig().redis.password,
-    };
-
-    this.redisPubClient = new Redis(redisOptions);
-    this.redisSubClient = new Redis(redisOptions);
-
-    // Redis theke notification channel-e subscribe kora
-    this.redisSubClient.subscribe('notification_channel', (err) => {
-      if (err) {
-        console.error('❌ Redis Subscription Error:', err.message);
-      }
-    });
-
-    // Redis theke message receive hole targeted user-ke emit kora
-    this.redisSubClient.on('message', (channel, message) => {
-      if (channel === 'notification_channel') {
-        const data = JSON.parse(message);
-        const { receiver_id, event_name, ...rest } = data;
-        
-        // targeted user-er unique room-e message emit kora
-        this.server.to(`user_${receiver_id}`).emit(event_name || 'new_notification', rest);
-      }
-    });
-  }
-
-  afterInit(server: Server) {
-    console.log('🚀 WebSocket server started on port 6009');
-  }
-
-  handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (userId) {
-      // User-ke tar unique room-e join korano holo
-      client.join(`user_${userId}`);
-      console.log(`🔌 User ${userId} connected and joined room: user_${userId}`);
-    }
-  }
-
-  handleDisconnect(client: Socket) {
-    console.log(`❌ Client disconnected: ${client.id}`);
+    this.initializeRedis();
   }
 
   /**
-   * Repository theke notification pathanor method
-   * @param receiverId Target user id
-   * @param eventName Event name (e.g., 'new_notification')
-   * @param data Payload data
+   * Lifecycle hook: Cleanly close Redis connection when the module is destroyed
    */
-  async sendToUser(receiverId: string, eventName: string, data: any) {
-    const payload = {
-      receiver_id: receiverId,
-      event_name: eventName,
-      ...data,
+  onModuleDestroy() {
+    if (this.redisSub) {
+      this.redisSub.quit();
+    }
+  }
+
+  /**
+   * Executed after the WebSocket server has been initialized
+   */
+  afterInit(server: Server) {
+    this.logger.log('🚀 WebSocket Gateway successfully initialized');
+  }
+
+  /**
+   * Setup Redis Subscriber and message listeners
+   */
+  private initializeRedis() {
+    const redisConfig = {
+      host: process.env.REDIS_HOST || '127.0.0.1',
+      port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
     };
 
-    // Redis-e publish kora hocche jate shob instance-e pawa jay
-    await this.redisPubClient.publish(
-      'notification_channel',
-      JSON.stringify(payload),
+    this.redisSub = new Redis(redisConfig);
+
+    this.redisSub.on('connect', () =>
+      this.logger.log('✅ Redis Subscriber connected for notifications'),
     );
+
+    this.redisSub.on('error', (err) =>
+      this.logger.error(`❌ Redis Subscription Error: ${err.message}`),
+    );
+
+    // Subscribe to the notification channel used by your repository/service
+    this.redisSub.subscribe('NOTIFICATION_CHANNEL', (err) => {
+      if (err) {
+        this.logger.error('❌ Failed to subscribe to NOTIFICATION_CHANNEL');
+      } else {
+        this.logger.log('📡 Subscribed to NOTIFICATION_CHANNEL');
+      }
+    });
+
+    // Listen for incoming messages from Redis
+    this.redisSub.on('message', (channel, message) => {
+      if (channel === 'NOTIFICATION_CHANNEL') {
+        this.handleInboundNotification(message);
+      }
+    });
+  }
+
+  /**
+   * Logic for processing and emitting Redis messages to specific users
+   */
+  private handleInboundNotification(message: string) {
+    try {
+      const data = JSON.parse(message);
+
+      // Ensure the payload has a receiver_id
+      if (!data.receiver_id) {
+        this.logger.warn(
+          '⚠️ Received notification payload without receiver_id',
+        );
+        return;
+      }
+
+      const roomName = `user_${data.receiver_id}`;
+
+      // Emit to the specific user's room
+      this.server.to(roomName).emit('notification', data);
+      this.logger.log(`📤 Notification delivered to room: ${roomName}`);
+    } catch (error) {
+      this.logger.error(
+        '❌ Failed to parse or emit Redis notification',
+        error.stack,
+      );
+    }
+  }
+
+  // /**
+  //  * Handle new WebSocket connections
+  //  */
+  // async handleConnection(client: Socket) {
+  //   try {
+  //     const userId = client.handshake.query.userId as string;
+
+  //     // 1. Validate the userId exists in the query
+  //     if (!userId || userId === 'null' || userId === 'undefined') {
+  //       this.logger.error(
+  //         `🚫 Connection rejected: Missing or invalid userId (${userId})`,
+  //       );
+  //       client.disconnect();
+  //       return;
+  //     }
+
+  //     this.logger.log(`🔍 Verifying user in database: ${userId}`);
+
+  //     // 2. Database verification to ensure the user is legitimate
+  //     const userExists = await this.prisma.user.findUnique({
+  //       where: { id: userId },
+  //       select: { id: true, type: true },
+  //     });
+
+  //     if (!userExists) {
+  //       this.logger.warn(
+  //         `🚫 Connection rejected: User ID ${userId} not found in DB`,
+  //       );
+  //       client.emit('error', {
+  //         message: 'Authentication failed: User not found',
+  //       });
+  //       client.disconnect();
+  //       return;
+  //     }
+
+  //     // 3. Join a unique room for this user to enable targeted notifications
+  //     const roomName = `user_${userId}`;
+  //     await client.join(roomName);
+
+  //     this.logger.log(
+  //       `✅ Connection established: ${client.id} joined ${roomName}`,
+  //     );
+
+  //     // Send a confirmation to the client
+  //     client.emit('connection_ready', { status: 'authorized', room: roomName });
+  //   } catch (error) {
+  //     this.logger.error(
+  //       `❌ Unexpected error during connection for client ${client.id}: ${error.message}`,
+  //     );
+  //     client.disconnect();
+  //   }
+  // }
+
+  // NotificationGateway - NestJS
+  async handleConnection(client: Socket) {
+    const userId = client.handshake.query.userId as string;
+
+    if (!userId || userId === 'null' || userId === 'undefined') {
+      this.logger.error('Invalid userId');
+      return client.disconnect();
+    }
+
+    /*
+  const userExists = await this.prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!userExists) {
+    this.logger.warn(`User ${userId} not found in DB`);
+    return client.disconnect(); 
+  }
+  */
+
+
+    await client.join(`user_${userId}`);
+    this.logger.log(`✅ Socket connected and joined room: user_${userId}`);
+  }
+
+  /**
+   * Handle WebSocket disconnections
+   */
+  handleDisconnect(client: Socket) {
+    this.logger.log(`❌ Client disconnected: ${client.id}`);
   }
 }

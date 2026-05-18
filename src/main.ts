@@ -21,7 +21,7 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix('api');
   app.enableCors({
-    origin: true,
+    origin: true, // Dynamically allows active development and production origins
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',
@@ -110,7 +110,7 @@ async function bootstrap() {
           ) {
             const data = response.obj || JSON.parse(response.data);
             const token = data?.authorization?.access_token;
-            const role = data?.type?.toLowerCase(); // Standardize role case
+            const role = data?.type?.toLowerCase();
 
             if (token) {
               const authKey =
@@ -129,14 +129,13 @@ async function bootstrap() {
                     type: 'http',
                     scheme: 'bearer',
                     bearerFormat: 'JWT',
+                    in: 'header',
                   },
                   value: token,
                 };
 
-                // Swagger UI এর ইন্টারনাল মেথড কল করে অথোরাইজ করা
                 ui.authActions.authorize(authObj);
 
-                // ✅ localStorage এ ম্যানুয়ালি সেভ করো যাতে reload এ টোকেন থাকে
                 try {
                   const existing = JSON.parse(
                     localStorage.getItem('authorized') || '{}',
@@ -160,8 +159,30 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT ?? 4000;
-  await app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 Server: http://localhost:${port}/api/docs`);
-  });
+
+  // Port Conflict & Auto Recovery Mechanism
+  try {
+    await app.listen(port, '0.0.0.0');
+    console.log(`🚀 Server running on: http://localhost:${port}/api/docs`);
+  } catch (error: any) {
+    if (error.code === 'EADDRINUSE') {
+      console.warn(
+        `⚠️ Port ${port} is currently locked by a dangling Node process.`,
+      );
+      console.log(
+        `🔄 Waiting 1.5 seconds for the port to release and retrying...`,
+      );
+
+      // Deliberate delay to allow OS to clean up socket tables
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      await app.listen(port, '0.0.0.0');
+      console.log(
+        `🚀 Server successfully recovered and running on: http://localhost:${port}/api/docs`,
+      );
+    } else {
+      throw error;
+    }
+  }
 }
 bootstrap();

@@ -71,7 +71,7 @@ export class NotificationRepository implements OnModuleInit {
 
       // 🔥 3. Real-time Socket Emission
       // Database-e save hobar por ekhanei socket emit korben jate user instant UI update pay
-      this.wsGateway.sendToUser(receiver_id, 'notification', {
+      this.wsGateway.server.to(`user_${receiver_id}`).emit('notification', {
         id: notification.id,
         text,
         type,

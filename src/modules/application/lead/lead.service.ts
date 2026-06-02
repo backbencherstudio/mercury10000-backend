@@ -793,9 +793,9 @@ export class LeadService {
     });
 
     if (!user) throw new NotFoundException('User not found');
-    if (user.type !== 'SUP_ADMIN') {
-      throw new ForbiddenException('Only users can update lead schedule time.');
-    }
+    // if (user.type !== 'SUP_ADMIN') {
+    //   throw new ForbiddenException('Only users can update lead schedule time.');
+    // }
     // First check if lead exists
     const lead = await this.prisma.lead.findUnique({ where: { id } });
     if (!lead) {

@@ -153,11 +153,11 @@ export class ConnectionRequestService {
       select: { type: true },
     });
 
-    if (!user || user.type !== 'SUP_ADMIN') {
-      throw new ForbiddenException(
-        'Only Super Admin can create connection requests.',
-      );
-    }
+    // if (!user || user.type !== 'SUP_ADMIN') {
+    //   throw new ForbiddenException(
+    //     'Only Super Admin can create connection requests.',
+    //   );
+    // }
     const data = await this.prisma.connectionRequest.findMany({
       include: {
         trade: true,

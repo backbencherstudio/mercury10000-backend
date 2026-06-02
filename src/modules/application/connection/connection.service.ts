@@ -35,11 +35,11 @@ export class ConnectionRequestService {
       select: { type: true, name: true, email: true },
     });
 
-    if (!user || user.type !== 'SUP_ADMIN') {
-      throw new ForbiddenException(
-        'Only Super Admin can create connection requests.',
-      );
-    }
+    // if (!user || user.type !== 'SUP_ADMIN') {
+    //   throw new ForbiddenException(
+    //     'Only Super Admin can create connection requests.',
+    //   );
+    // }
 
     // 2. Trade Validation
     const trade = await this.prisma.trade.findUnique({

@@ -339,11 +339,11 @@ export class LeadService {
     });
 
     if (!user) throw new NotFoundException('User not found');
-    if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
-      throw new ForbiddenException(
-        'Access denied. Only Super Admin and secretary can view in-process leads.',
-      );
-    }
+    // if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
+    //   throw new ForbiddenException(
+    //     'Access denied. Only Super Admin and secretary can view in-process leads.',
+    //   );
+    // }
 
     // Build Filter
     const where: Prisma.LeadWhereInput = {
@@ -413,11 +413,11 @@ export class LeadService {
     });
 
     if (!user) throw new NotFoundException('User not found');
-    if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
-      throw new ForbiddenException(
-        'Access denied. Only Super Admin and secretary can view in-process leads.',
-      );
-    }
+    // if (user.type !== 'SUP_ADMIN' && user.type !== 'SECRETARY') {
+    //   throw new ForbiddenException(
+    //     'Access denied. Only Super Admin and secretary can view in-process leads.',
+    //   );
+    // }
 
     // Build Filter
     const where: Prisma.LeadWhereInput = {

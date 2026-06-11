@@ -81,8 +81,6 @@ export class LeadService {
         });
       });
 
-      // 🔥 ২. ট্রানজ্যাকশন সফল হবার পর ব্যাকগ্রাউন্ডে নোটিফিকেশন পাঠান
-      // এটি অ্যাওয়েট করার দরকার নেই যাতে ইউজার দ্রুত রেসপন্স পায়
       this.sendLeadNotifications(userId, user.name, result);
 
       return {

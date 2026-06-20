@@ -12,11 +12,14 @@ import { CustomExceptionFilter } from './common/exception/custom-exception.filte
 import { PrismaExceptionFilter } from './common/exception/prisma-exception.filter';
 import { TajulStorage } from './common/lib/Disk/TajulStorage';
 import appConfig from './config/app.config';
+import { json, urlencoded } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
   });
+  app.use(json({ limit: 'Infinity' }));
+  app.use(urlencoded({ extended: true, limit: 'Infinity' }));
 
   app.useWebSocketAdapter(new IoAdapter(app));
   app.setGlobalPrefix('api');

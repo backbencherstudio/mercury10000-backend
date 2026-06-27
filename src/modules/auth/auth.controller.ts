@@ -22,6 +22,7 @@ import {
   ApiExcludeEndpoint,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -169,25 +170,24 @@ export class AuthController {
   }
 
   //get signle user
+  // get single user
   @Get('single_user/:id')
   @UseGuards(JwtAuthGuard)
   @ApiAllAuth()
   @ApiOperation({ summary: 'Get single user' })
-  @ApiQuery({ name: 'id', required: true, type: String, example: '1' })
+  @ApiParam({
+    name: 'id',
+    required: true,
+    type: String,
+    example: 'cmp0ywun700008ctz1skpvdzv',
+  })
   @ApiResponse({
     status: 200,
     description: 'Single user fetched successfully',
     type: UserSingleResDto,
   })
   async getSingleUser(@Param('id') id: string) {
-    try {
-      return await this.authService.getSingleUser(id);
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to fetch single user',
-      };
-    }
+    return await this.authService.getSingleUser(id);
   }
 
   // get all users with pagination
@@ -244,36 +244,28 @@ export class AuthController {
     }
   }
 
-  // *update user
-  // @ApiExcludeEndpoint()
-
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    type: UpdateUserResDto,
+ @Patch('update/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiAllAuth()
+  @ApiOperation({ summary: 'Update user profile settings' })
+  @ApiParam({ 
+    name: 'id', 
+    required: true, 
+    type: String, 
+    description: 'User dynamic unique identifier CUID/UUID',
+    example: 'cmp3wi4p0000howtzgw468c7d'
   })
+  // Fix CRITICAL: @ApiConsumes line absolute delete. Body auto raw JSON syntax serialize dynamic mapping nibe.
   @ApiResponse({
     status: 200,
     description: 'User updated successfully',
     type: UpdateUserResDto,
   })
-  @UseGuards(JwtAuthGuard)
-  @ApiAllAuth()
-  @Patch('update/:id')
   async updateUser(
-    @Req() req: Request,
     @Param('id') id: string,
     @Body() data: UpdateUserDto,
   ) {
-    try {
-      const user_id = req.user.userId;
-      const response = await this.authService.updateUser(id, user_id, data);
-      return response;
-    } catch (error) {
-      return {
-        success: false,
-        message: 'Failed to update user',
-      };
-    }
+    return await this.authService.updateUser(id, data);
   }
 
   // *forgot password

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserType } from '@prisma/client';
+import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsEmail,
@@ -195,61 +196,74 @@ export class ResetPasswordDto {
 }
 
 export class UpdateUserResDto {
-  @ApiPropertyOptional({ example: 'John Doe' })
+  // Fix A: DB column name unique string naming sync sequence rule (name instead of username)
+  @ApiPropertyOptional({ example: 'MD Tajul Islam' })
   @IsString()
   @IsOptional()
-  username?: string;
+  name?: string;
 
-  @ApiPropertyOptional({ example: '019948547647' })
+  @ApiPropertyOptional({ example: '01302442863' })
   @IsString()
   @IsOptional()
   phone_number?: string;
 
-  @ApiProperty({ example: 'user@mercury.com' })
+  @ApiPropertyOptional({ example: 'dev.tajulislam505@gmail.com' })
   @IsEmail()
-  email: string;
+  @IsOptional() // Profile update context rules safe logic runtime parameter optimization
+  email?: string;
 
-  @ApiPropertyOptional({ example: 'Google' })
+  @ApiPropertyOptional({ example: 'Softvence Delta' })
   @IsString()
   @IsOptional()
   work_at_company?: string;
 
-  @ApiPropertyOptional({ example: 'New York' })
+  @ApiPropertyOptional({ example: 'Dhaka' })
   @IsString()
   @IsOptional()
   city?: string;
 
-  @ApiPropertyOptional({ example: 'USA' })
+  @ApiPropertyOptional({ example: 'Bangladesh' })
   @IsString()
   @IsOptional()
   country?: string;
 
-  @ApiPropertyOptional({
-    enum: UserType,
-    default: UserType.USER,
-  })
+  @ApiPropertyOptional({ enum: UserType, default: UserType.USER })
   @IsOptional()
   @IsEnum(UserType)
   type?: UserType;
 
+  // Fix B: Parse array string sent from form-data architecture context runtime
   @ApiPropertyOptional({
     type: [String],
-    example: ['clx123...', 'clx456...'],
-    description: 'Array of Trade IDs',
+    example: ['plumbing', 'Electrical'],
+    description: 'Array of Trade values or references',
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value.split(',');
+      }
+    }
+    return value;
+  })
   @IsArray()
   @IsString({ each: true })
   trades?: string[];
 
-  @ApiPropertyOptional({ example: 100 })
+  // Fix C: Transform text string to explicit float logic number context
+  @ApiPropertyOptional({ example: 50 })
   @IsOptional()
+  @Transform(({ value }) => (value ? Number(value) : undefined))
   @IsNumber()
   @Min(0)
   qualified_leads_fee?: number;
 
-  @ApiPropertyOptional({ example: 10 })
+  @ApiPropertyOptional({ example: 15.5 })
   @IsOptional()
+  @Transform(({ value }) => (value ? Number(value) : undefined))
   @IsNumber()
   @Min(0)
   conversion_fee?: number;

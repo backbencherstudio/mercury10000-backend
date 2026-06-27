@@ -1,6 +1,13 @@
 // external imports
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import Redis from 'ioredis';
 
@@ -136,7 +143,6 @@ export class AuthService {
     }
   }
 
-  // get single user
   async getSingleUser(id: string) {
     try {
       const user = await this.prisma.user.findUnique({
@@ -156,29 +162,27 @@ export class AuthService {
       });
 
       if (!user) {
-        return {
-          success: false,
-          message: 'User not found',
-        };
+        // Automatically bubbles up as HTTP 404 Not Found
+        throw new NotFoundException('User not found');
       }
 
-      if (user) {
-        return {
-          success: true,
-          message: 'User fetched successfully',
-          data: user,
-        };
-      } else {
-        return {
-          success: false,
-          message: 'User not found',
-        };
-      }
-    } catch (error) {
       return {
-        success: false,
-        message: error.message,
+        success: true,
+        message: 'User fetched successfully',
+        data: user,
       };
+    } catch (error) {
+      // NestJS core exceptions bubble up unhindered
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      // Logger inject kore track korte paren standard debugging er jonno
+      // Return proper HTTP 500 Internal Server Error instead of 200 OK
+      throw new InternalServerErrorException(
+        error.message ||
+          'An unexpected error occurred while fetching user data',
+      );
     }
   }
 
@@ -190,6 +194,9 @@ export class AuthService {
         take: limit,
         where: {
           type: 'USER',
+        },
+        orderBy: {
+          created_at: 'desc',
         },
         select: {
           id: true,
@@ -244,6 +251,9 @@ export class AuthService {
         take: limit,
         where: {
           type: 'SECRETARY',
+        },
+        orderBy: {
+          created_at: 'desc',
         },
         select: {
           id: true,
@@ -337,60 +347,62 @@ export class AuthService {
     }
   }
 
-  // update user
-  async updateUser(
-    id: string,
-    requestingUserId: string, // Requesting User ID (JWT payload)
-    dto: UpdateUserDto,
-  ) {
+  async updateUser(id: string, dto: UpdateUserDto) {
     try {
-      // 1. Requesting User (Auth User) fetch kora tar type check korar jonno
-      const authUser = await this.prisma.user.findUnique({
-        where: { id: requestingUserId },
-        select: { type: true }, // Performance optimized: shudhu type-ta nilam
-      });
-
-      if (!authUser) {
-        return { success: false, message: 'Authenticated user not found' };
+      // 1. Check if raw JSON body payload is completely empty
+      if (!dto || Object.keys(dto).length === 0) {
+        throw new BadRequestException('No update data payload provided.');
       }
 
-      const isAdmin = authUser.type === 'SUP_ADMIN';
-      const isSelf = id === requestingUserId;
-
-      if (!isAdmin && !isSelf) {
-        return {
-          success: false,
-          message:
-            'Unauthorized: You do not have permission to update this profile',
-        };
-      }
-
-      // 3. Target User fetch kora (Checking if target exists)
+      // 2. Target User verify kora (Checking if target record exists)
       const targetUser = await this.prisma.user.findUnique({ where: { id } });
-      if (!targetUser)
-        return { success: false, message: 'Target user not found' };
+      if (!targetUser) {
+        throw new NotFoundException('Target user not found');
+      }
 
-      // 4. Phone unique check (Jodi phone change hoy)
+      // 3. Phone unique constraint check (Jodi payload-e new phone number thake ar setah change hoy)
       if (dto.phone_number && dto.phone_number !== targetUser.phone_number) {
         const exists = await this.prisma.user.findFirst({
           where: { phone_number: dto.phone_number },
         });
-        if (exists)
-          return { success: false, message: 'Phone number already exists' };
+        if (exists) {
+          throw new ConflictException(
+            'Phone number already exists across another profile',
+          );
+        }
       }
 
-      // 6. Final Update with Prisma snack_case mapping
-      await this.prisma.user.update({
+      // 4. Executing direct mutation matching database snake_case field schema rules
+      const updatedProfile = await this.prisma.user.update({
         where: { id },
         data: {
-          ...dto,
-          updated_at: new Date(),
+          ...dto, // Safe JSON mapping payload spread
+          updated_at: new Date(), // Global DB snake_case timestamp management rule
         },
       });
 
-      return { success: true, message: 'User updated successfully' };
+      return {
+        success: true,
+        message: 'User updated successfully',
+        data: {
+          id: updatedProfile.id,
+          updated_at: updatedProfile.updated_at,
+        },
+      };
     } catch (error) {
-      return { success: false, message: error.message };
+      // Propagation handling for specific NestJS clean exception filters
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+
+      // Catches and outputs explicit native runtime or database-level crash logs safely
+      throw new InternalServerErrorException(
+        error.message || 'Transactional update operation failed internally',
+      );
     }
   }
   // done
